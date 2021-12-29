@@ -91,7 +91,7 @@ class Data:
 
     def show_who_goes(self, game_id, parametr):
         self.cursor.execute(
-            f"SELECT u.name, u.id FROM users u , pre_reg pr WHERE pr.game_id = {game_id} AND pr.user_id = u.id AND pr.prepayment = {parametr}")
+            f"SELECT u.name, u.id FROM users u , pre_reg pr WHERE pr.game_id = {game_id} AND pr.user_id = u.id AND pr.prepayment = {parametr} AND pr.come=0")
         result = self.cursor.fetchall()
         return result
 
@@ -123,7 +123,7 @@ class Data:
 
     def find_admin(self, city_id):
         self.cursor.execute(
-            f"SELECT phone FROM users WHERE (role=1 or role=2) and city_id={city_id}")
+            f"SELECT id, phone, name FROM users WHERE (role=1 or role=2) and city_id={city_id} ORDER BY role")
         result = self.cursor.fetchone()
         return result
 
@@ -139,9 +139,11 @@ class Data:
             f"update  games set definitely = definitely+(select count from pre_reg where user_id ={user_id} and game_id={game_id}) where id ={game_id}")
         self.connection.commit()
 
-    def update_count(self, user_id):
+    def update_count(self, user_id,game_id):
         self.cursor.execute(
             f"UPDATE users SET count =count + 1 WHERE id={user_id}")
+        self.cursor.execute(
+            f"update  pre_reg  set come = 1 where user_id = {user_id} and game_id={game_id}")
         self.connection.commit()
 
     def __del__(self):
