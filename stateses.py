@@ -43,5 +43,7 @@ class City_state(StatesGroup):
 
 
 class News_state(StatesGroup):
-    reg_news = State()
-    all_news = State()
+    reg_news_text = State()
+    reg_news_photo = State()
+    all_news_text = State()
+    all_news_photo = State()

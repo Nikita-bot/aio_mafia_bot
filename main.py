@@ -231,15 +231,15 @@ async def show_game(message: types.Message):
 
                 confirm_keyboard = types.InlineKeyboardMarkup()
                 confirm_btn = types.InlineKeyboardButton(
-                    text="Я иду ✔️", callback_data=f"confirm_1_{i[0]}")
+                    text="Я иду ✔️", callback_data=f"confirm_1_{i[0]}_{i[8]}")
                 confirm_btn1 = types.InlineKeyboardButton(
-                    text="Я иду + 1 ✔️", callback_data=f"confirm_2_{i[0]}")
+                    text="Я иду + 1 ✔️", callback_data=f"confirm_2_{i[0]}_{i[8]}")
                 confirm_btn2 = types.InlineKeyboardButton(
-                    text="Я иду + 2 ✔️", callback_data=f"confirm_3_{i[0]}")
+                    text="Я иду + 2 ✔️", callback_data=f"confirm_3_{i[0]}_{i[8]}")
                 confirm_btn3 = types.InlineKeyboardButton(
-                    text="Я иду + 3 ✔️", callback_data=f"confirm_4_{i[0]}")
+                    text="Я иду + 3 ✔️", callback_data=f"confirm_4_{i[0]}_{i[8]}")
                 who_goes_btn = types.InlineKeyboardButton(
-                    text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}")
+                    text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}_{i[8]}")
                 confirm_keyboard.add(who_goes_btn)
                 confirm_keyboard.add(confirm_btn)
                 confirm_keyboard.add(confirm_btn1)
@@ -273,6 +273,7 @@ async def call_btn_confirm(call: CallbackQuery):
     game_id = game_info[2]
     count = int(game_info[1])
     city_id = db.show_user(call.from_user.id)[3]
+    prepay = game_info[3]
 
     result_pre_reg = db.show_prereg_game(call.from_user.id)
     if(len(result_pre_reg) == 0):
@@ -287,8 +288,14 @@ async def call_btn_confirm(call: CallbackQuery):
 
             db.Insert_prereg_game(game_id, user_id, count)
             await bot.edit_message_caption(chat_id=call.message.chat.id,
-                                           message_id=call.message.message_id, caption=f'Вы подали заявку на данную игру \nДля предоплаты переведите сумму предоплаты по номеру :"{admin[1]}"', parse_mode="Markdown", reply_markup=None)
-
+                                           message_id=call.message.message_id, caption=f'Для записи на игру от вас необходима предоплата {prepay}р с человека.\nПеревод на карту Сбербанк по номеру телефона:{admin[1]}.\n В переводе укажите ваш ник\n В случае отказа от игры за 24 часа до игры, предоплата возвращается.', reply_markup=None)
+            admin_id = db.find_admin(city_id)[0]
+            user = db.show_user(user_id)
+            mention =[]
+            
+            mention.append(f"[{user[1]}](tg://user?id={user[0]})") 
+            await bot.send_message(admin_id, "Кто-то зарегистрировался на игру:\n" +
+                               '\n'.join(mention), parse_mode="Markdown")
             break
 
 # ________________
@@ -305,9 +312,9 @@ async def admin_panel(message: types.Message):
             btn_game = types.InlineKeyboardButton(
                 text='Игры🎲', callback_data='btn_game')
             btn_news = types.InlineKeyboardButton(
-                text='Общая рассылка', callback_data='btn_news')
+                text='Общая рассылка', callback_data='btn_news_0')
             btn_rnews = types.InlineKeyboardButton(
-                text='Рассылка по городу', callback_data='btn_rnews')
+                text='Рассылка по городу', callback_data='btn_rnews_0')
             btn_user = types.InlineKeyboardButton(
                 text='Пользователи👨', callback_data='btn_user')
             btn_city = types.InlineKeyboardButton(
@@ -327,7 +334,7 @@ async def admin_panel(message: types.Message):
             btn_user = types.InlineKeyboardButton(
                 text='Пользователи👨', callback_data='btn_user')
             btn_rnews = types.InlineKeyboardButton(
-                text='Рассылка по городу', callback_data='btn_rnews')
+                text='Рассылка по городу', callback_data='btn_rnews_0')
             keyboad_adm.add(btn_game)
             keyboad_adm.add(btn_user)
             keyboad_adm.add(btn_rnews)
@@ -342,34 +349,78 @@ async def admin_panel(message: types.Message):
 
 @dp.callback_query_handler(text_contains='btn_rnews')
 async def callback_btn_rnews(call: CallbackQuery):
+    news = call.data.split('_')[2]
+    if(int(news) == 0):
+        keyboad = types.InlineKeyboardMarkup()
+        btn_photo = types.InlineKeyboardButton(text='Новость с фото', callback_data='btn_rnews_1')
+        btn_text = types.InlineKeyboardButton(text='Новость без фото', callback_data='btn_rnews_2')
+        keyboad.add(btn_photo)
+        keyboad.add(btn_text)
+        await bot.edit_message_text('Выберите тип новости',call.message.chat.id,call.message.message_id ,reply_markup=keyboad)
+    if(int(news) == 1):
+        await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
+        await News_state.reg_news_photo.set()
+    if(int(news) == 2):
+        await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
+        await News_state.reg_news_text.set()
 
-    await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
-    await News_state.reg_news.set()
 
-
-@dp.message_handler(state=News_state.reg_news)
-async def news_state(message: types.Message, state: FSMContext):
+@dp.message_handler(state=News_state.reg_news_text)
+async def rnews_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
     city_id = db.show_user(message.from_user.id)[3]
     await state.finish()
     for i in db.show_all_users(city_id):
         await bot.send_message(i[0], data['text'])
+    
+
+@dp.message_handler(state=News_state.reg_news_photo, content_types=['photo'])
+async def news_state(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['text'] = message.caption
+        photo = message.photo[-1].file_id
+    city_id = db.show_user(message.from_user.id)[3]
+    await state.finish()
+    for i in db.show_all_users(city_id):
+        await bot.send_photo(i[0], photo= photo,caption=data['text'])
 
 
 @ dp.callback_query_handler(text_contains='btn_news')
 async def callback_btn_news(call: CallbackQuery):
-    await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
-    await News_state.all_news.set()
+    news = call.data.split('_')[2]
+
+    if(int(news) == 0):
+        keyboad = types.InlineKeyboardMarkup()
+        btn_photo = types.InlineKeyboardButton(text='Новость с фото', callback_data='btn_news_1')
+        btn_text = types.InlineKeyboardButton(text='Новость без', callback_data='btn_news_2')
+        keyboad.add(btn_photo)
+        keyboad.add(btn_text)
+        await bot.edit_message_text('Выберите тип новости',call.message.chat.id,call.message.message_id ,reply_markup=keyboad)
+    if(int(news) == 1):
+        await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
+        await News_state.all_news_photo.set()
+    if(int(news) == 2):
+        await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
+        await News_state.all_news_text.set()
 
 
-@dp.message_handler(state=News_state.all_news)
+@dp.message_handler(state=News_state.all_news_text)
 async def rnews_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
     await state.finish()
     for i in db.show_all_users('city_id'):
         await bot.send_message(i[0], data['text'])
+
+@dp.message_handler(state=News_state.all_news_photo, content_types=['photo'])
+async def news_state(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['text'] = message.caption
+        photo = message.photo[-1].file_id
+    await state.finish()
+    for i in db.show_all_users('city_id'):
+        await bot.send_photo(i[0], photo= photo,caption=data['text'])
 
 # _____ADMIN/NEWS_____
 
@@ -384,18 +435,31 @@ async def callback_btn_user(call: CallbackQuery):
         keyboard = types.InlineKeyboardMarkup()
         btn_role = types.InlineKeyboardButton(
             text="Настройки ролей", callback_data="btn_edit_role")
-        btn_cume = types.InlineKeyboardButton(
-            text="Отметить пришедших на игру", callback_data="btn_cum")
-        keyboard.add(btn_cume)
+        btn_allUsers = types.InlineKeyboardButton(
+            text="Вывести всех пользователей", callback_data="btn_allUser")
+        keyboard.add(btn_allUsers)
         keyboard.add(btn_role)
         await bot.edit_message_text("Что вы хотите сделать с пользователями?", call.from_user.id, call.message.message_id, reply_markup=keyboard)
     elif role == 1:
         keyboard = types.InlineKeyboardMarkup()
-        btn_cume = types.InlineKeyboardButton(
-            text="Отметить пришедших на игру", callback_data="btn_cum")
-        keyboard.add(btn_cume)
+        btn_allUsers = types.InlineKeyboardButton(
+            text="Вывести всех пользователей", callback_data="btn_allUser")
+        keyboard.add(btn_allUsers)
 
         await bot.edit_message_text("Что вы хотите сделать с пользователями?", call.from_user.id, call.message.message_id, reply_markup=keyboard)
+
+
+@dp.callback_query_handler(text_contains='btn_allUser')
+async def callback_btn_cum(call: CallbackQuery):
+    city_id = db.show_user(call.from_user.id)[3]
+    users = db.show_all_users(city_id)
+    mention = []
+    for i in users:
+        mention.append(f"[{i[1]}](tg://user?id={i[0]})")
+    if len(mention) == 0:
+        await bot.send_message(call.message.chat.id, "Пока никого нет")
+    else:
+        await bot.send_message(call.message.chat.id, "Список пользователей в вашем городе:\n" +'\n'.join(mention), parse_mode="Markdown")
 
 
 @dp.callback_query_handler(text_contains='btn_cum')
@@ -581,10 +645,13 @@ async def callback_admin_btn_game(call: CallbackQuery):  # админ меню
         text='Настроить игру', callback_data='btn_edit_game')
     btn_pay_game = types.InlineKeyboardButton(
         text='Подтверждение оплаты игры', callback_data='btn_pay_game')
-
+    btn_cume = types.InlineKeyboardButton(
+            text="Отметить пришедших на игру", callback_data="btn_cum")
+   
     keyboard.add(btn_create_game)
     keyboard.add(btn_edit_game)
     keyboard.add(btn_pay_game)
+    keyboard.add(btn_cume)
 
     await bot.edit_message_text("Меню игр", call.from_user.id, call.message.message_id, reply_markup=keyboard)
 
@@ -866,6 +933,7 @@ async def call_btn_btn_gusers(call: CallbackQuery):
     user = (await btn_users(users,game_id,"btn_gusers"))[0]
     await bot.edit_message_text("Выберете человека который оплатил", call.from_user.id, call.message.message_id,
                                 reply_markup=user)
+    await bot.send_message(user_id,"Оплата подтверждена")
 # _____ADMIN/GAME_____
 # _____ADMIN________
 
