@@ -1,2 +1,2 @@
-pyTelegramBotAPI
-psycopg2
+aiogram == 2.17.1
+psycopg2 == 2.9.2
