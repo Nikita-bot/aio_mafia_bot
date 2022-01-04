@@ -642,7 +642,7 @@ async def callback_btn_dcity(call: CallbackQuery):
             if(i[2]==2):
                 db.Change_city(0,i[0],2)
             else:
-                db.Change_city(0,i[0],2)
+                db.Change_city(0,i[0],0)
             await bot.send_message(i[0],"В вашем городе временно не будут проводиться игры, вы можете изменить город в настройках профиля")
         db.del_city(city_id)
         await bot.edit_message_text('Город удален', call.from_user.id, call.message.message_id, reply_markup=None)
