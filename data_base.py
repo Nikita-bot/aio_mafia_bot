@@ -113,13 +113,38 @@ class Data:
 
     def show_all_users(self, parametr):
         self.cursor.execute(
-            f"SELECT id,name FROM users WHERE city_id={parametr}")
+            f"SELECT id,name,role FROM users WHERE city_id={parametr}")
         result = self.cursor.fetchall()
         return result
 
     def del_game(self, game_id):
         self.cursor.execute(f"DELETE FROM games WHERE id = {game_id}")
         self.connection.commit()
+
+    def del_prereg(self,game_id):
+        self.cursor.execute(f"DELETE FROM pre_reg WHERE game_id = {game_id}")
+        self.connection.commit()
+
+    def del_place(self, place_id):
+        self.cursor.execute(f"select id FROM games WHERE place_id= {place_id}")
+        result = self.cursor.fetchall()
+        for i in result:
+            self.cursor.execute(f"DELETE FROM pre_reg WHERE game_id = {i[0]}")
+            self.connection.commit()
+            self.cursor.execute(f"DELETE FROM games WHERE id = {i[0]}")
+            self.connection.commit()
+        self.cursor.execute(f"DELETE FROM place WHERE id = {place_id}")
+        self.connection.commit()
+
+    def del_city(self, city_id):
+
+        self.cursor.execute(f"DELETE FROM city WHERE id = {city_id}")
+        self.connection.commit()
+
+    def show_game_in_place(self ,place_id):
+        self.cursor.execute(f"select id FROM games WHERE place_id= {place_id}")
+        result = self.cursor.fetchall()
+        return result
 
     def find_admin(self, city_id):
         self.cursor.execute(
