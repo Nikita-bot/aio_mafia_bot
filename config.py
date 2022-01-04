@@ -1,3 +1,5 @@
+
+
 TOKEN = '2074833792:AAHJXMiz7LFaKuoERcbm0RulGIC0iZ0yi5U'  # токен бота
 
 host = 'ec2-54-76-249-45.eu-west-1.compute.amazonaws.com'
