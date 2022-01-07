@@ -156,7 +156,7 @@ class Data:
 
     def find_main(self):
         self.cursor.execute(
-            f"SELECT id, phone, name FROM users WHERE role=2")
+            f"SELECT id, phone, name FROM users WHERE role = 2")
         result = self.cursor.fetchone()
         return result
 

@@ -154,11 +154,12 @@ async def help_message(message: types.Message):
            await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
     else:
         admin = db.find_admin(city)
-        if(len(admin)==0):
+        if(admin is None):
             main = db.find_main()
             mention = []
             mention.append(f"[{main[2]}](tg://user?id={main[0]})")
-            await bot.send_message(message.chat.id, "Администратора в вашем городе пока не назвачили, по всем вопросам пишите главному:")
+            await bot.send_message(message.chat.id, "Администратора в вашем городе пока не назвачили, по всем вопросам пишите главному:\n" +
+                                    '\n'.join(mention), parse_mode="Markdown")
         else:
             mention = []
             mention.append(f"[{admin[2]}](tg://user?id={admin[0]})")
@@ -187,10 +188,17 @@ async def callback_yes(call: CallbackQuery):
         await bot.send_message(call.message.chat.id,"Для начала выберите город в настройках профиля")
     else:
         admin = db.find_admin(user[3])
-        mention = []
-        mention.append(f"[{user[1]}](tg://user?id={user[0]})")
-        await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
-                                '\n'.join(mention), parse_mode="Markdown")
+        if(admin is None):
+            main = db.find_main()
+            mention = []
+            mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+            await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
+                                    '\n'.join(mention), parse_mode="Markdown")
+        else:
+            mention = []
+            mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+            await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
+                                    '\n'.join(mention), parse_mode="Markdown")
 
 
 
