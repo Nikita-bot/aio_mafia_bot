@@ -6,13 +6,15 @@ import os
 
 class Data:
     def __init__(self):
-        self.connection = psycopg2.connect(
+        DATABASE_URL = os.environ['DATABASE_URL']
+        self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+        '''self.connection = psycopg2.connect(
             host=host,
             user=userr,
             password=password,
             database=db_name
 
-        )
+        )'''
         
         self.cursor = self.connection.cursor()
 
