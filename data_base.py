@@ -1,20 +1,22 @@
 from config import host, userr, password, db_name
 import psycopg2
-from threading import Lock, Thread
 import os
 
 
 class Data:
     def __init__(self):
         DATABASE_URL = os.environ['DATABASE_URL']
-        self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
-        '''self.connection = psycopg2.connect(
-            host=host,
-            user=userr,
-            password=password,
-            database=db_name
 
-        )'''
+        self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+        #self.connection = psycopg2.connect('postgres://yxeppordclzdnu:e9f6f055476a9dee5ec5859536c3a96a943fb410f80f61dfd5fee3534826b3c7@ec2-52-30-133-191.eu-west-1.compute.amazonaws.com:5432/ddljeai8o9bfbm', sslmode='require')
+
+        #self.connection = psycopg2.connect(
+           # host=host,
+           # user=userr,
+           # password=password,
+           # database=db_name
+
+        #)
         
         self.cursor = self.connection.cursor()
 
