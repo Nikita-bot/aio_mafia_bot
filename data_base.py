@@ -154,6 +154,12 @@ class Data:
         result = self.cursor.fetchone()
         return result
 
+    def find_main(self):
+        self.cursor.execute(
+            f"SELECT id, phone, name FROM users WHERE role=2")
+        result = self.cursor.fetchone()
+        return result
+
     def insert_place(self, place_info):  # city_id,name,price,seats,preprice
         self.cursor.execute(
             f"INSERT INTO place (city_id,name,price,seats,prepayment) VALUES ({place_info['city_id']},'{place_info['name']}',{place_info['price']},{place_info['seats']},{place_info['prepay']})")
