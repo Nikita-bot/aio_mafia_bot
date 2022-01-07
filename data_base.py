@@ -1,6 +1,7 @@
 from config import host, userr, password, db_name
 import psycopg2
 from threading import Lock, Thread
+import os
 
 
 class Data:
@@ -10,11 +11,13 @@ class Data:
             user=userr,
             password=password,
             database=db_name
+
         )
+        
         self.cursor = self.connection.cursor()
 
     def show_user(self, user_id):
-        # result=[id,name,phone,city_id,role]
+
         self.cursor.execute(
             f"SELECT id,name,phone,city_id,role FROM users  WHERE id={user_id}")
         result = self.cursor.fetchone()
@@ -36,7 +39,6 @@ class Data:
         return result
 
     def show_place_in_city(self, city_id):
-        # return=[[name,price,seats,city_id],[name,price,seats,city_id]]
         self.cursor.execute(
             f"SELECT id, name,price,seats,city_id FROM place WHERE city_id={city_id} ORDER BY id")
         result = self.cursor.fetchall()

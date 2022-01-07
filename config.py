@@ -2,7 +2,8 @@
 
 TOKEN = '2074833792:AAHJXMiz7LFaKuoERcbm0RulGIC0iZ0yi5U'  # токен бота
 
-host = 'ec2-54-76-249-45.eu-west-1.compute.amazonaws.com'
-userr = 'jaupqdicxobunr'
-password = '60f4c66215abca51aa278a17769d0affbfb36109fbde7eefb8f450c2dcc0c00e'
-db_name = 'd80oi4mhkt4m0i'
+host = 'ec2-52-30-133-191.eu-west-1.compute.amazonaws.com'
+userr = 'yxeppordclzdnu'
+password = 'e9f6f055476a9dee5ec5859536c3a96a943fb410f80f61dfd5fee3534826b3c7'
+db_name = 'ddljeai8o9bfbm'
+
