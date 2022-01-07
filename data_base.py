@@ -7,7 +7,7 @@ class Data:
     def __init__(self):
         
         self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
-    
+        print(DATABASE_URL)
         self.cursor = self.connection.cursor()
 
     def show_user(self, user_id):
