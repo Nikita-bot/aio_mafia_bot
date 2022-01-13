@@ -234,6 +234,7 @@ async def show_game(message: types.Message):
                 date = i[2].strftime("%d.%m.%Y")
                 hour = int(time.split(":")[0])+4
                 time_del = datetime.datetime(2020,12,12,hour=hour,minute=int(time.split(":")[1]),second=0).strftime("%H:%M")
+                print(time_del)
                 if datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date:
                     file_name = os.path.join(
                     f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
@@ -849,8 +850,11 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
     city_id = db.show_user(call.from_user.id)[3]
     result_game = db.show_game(city_id)
     if(len(result_game) == 0):
-        await bot.send_message(call.message.chat.id, 'Игр пока нет')
+        #await bot.send_message(call.message.chat.id, 'Игр пока нет')
+        await bot.edit_message_text('Игр пока нет', call.from_user.id, call.message.message_id, reply_markup=None)
     game_id = []
+    await bot.delete_message(chat_id=call.message.chat.id,
+                                   message_id=call.message.message_id)
     for i in result_game:
         game_id.append(i[0])
         times = i[3].strftime("%H:%M")
@@ -859,7 +863,6 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
         btn_edit_game = types.InlineKeyboardButton(
             text="Настроить эту игру", callback_data=f"btn_edit_{i[0]}")
         keyboard.add(btn_edit_game)
-        
         await bot.send_photo(call.message.chat.id, photo=open(
             f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: {i[1]}\nДата проведения: {date}\nВремя: {times}\nЦена: `{i[5]}`\nОсталось мест: {i[4]-i[6]}\nУже идёт: {i[6]}", parse_mode='Markdown', reply_markup=keyboard)
 
