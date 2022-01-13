@@ -902,7 +902,7 @@ async def new_take_time(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
     game_info['time'] = data['text']
-    game_info['time'] = re.split(";|,|\n|-|:", game_info['time'])
+    game_info['time'] = re.split(";|,|\n|-|:|\.", game_info['time'])
     
     
     if (int(game_info['time'][0]) < 0 or int(game_info['time'][0]) >= 23) or int(game_info['time'][1]) >= 59:
