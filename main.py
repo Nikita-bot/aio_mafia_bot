@@ -234,7 +234,9 @@ async def show_game(message: types.Message):
                 date = i[2].strftime("%d.%m.%Y")
                 hour = int(time.split(":")[0])+4
                 time_del = datetime.datetime(2020,12,12,hour=hour,minute=int(time.split(":")[1]),second=0).strftime("%H:%M")
-                print(time_del)
+                print("Del time:"+time_del)
+                print("Now:"+datetime.datetime.now().strftime("%H:%M"))
+                print(datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date)
                 if datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date:
                     file_name = os.path.join(
                     f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
