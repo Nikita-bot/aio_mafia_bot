@@ -188,17 +188,15 @@ async def callback_yes(call: CallbackQuery):
         await bot.send_message(call.message.chat.id,"Для начала выберите город в настройках профиля")
     else:
         admin = db.find_admin(user[3])
-        if(admin is None):
-            main = db.find_main()
-            mention = []
-            mention.append(f"[{user[1]}](tg://user?id={user[0]})")
-            await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
+
+        main = db.find_main()
+        mention = []
+        mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+        await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
                                     '\n'.join(mention), parse_mode="Markdown")
-        else:
-            mention = []
-            mention.append(f"[{user[1]}](tg://user?id={user[0]})")
-            await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
+        await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
                                     '\n'.join(mention), parse_mode="Markdown")
+        
 
 
 
