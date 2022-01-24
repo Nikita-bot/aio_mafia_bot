@@ -3,6 +3,7 @@ import os
 import re
 import time
 import datetime
+import yadisk
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -22,6 +23,8 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
+y = yadisk.YaDisk(token="AQAAAAA-k0ApAAehkTG5vWJoskKvj-XHCslJKAw")
+
 
 user_info = {}
 place_info = {}
@@ -95,6 +98,7 @@ async def reg_message(message: types.Message):
                                text="Вы новый пользователь!\nПоэтому давайте пройдём регистрацию\nДля начала подтвердите свой номер телефона",
                                reply_markup=keyboard)
     else:
+        y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
         await bot.send_photo(message.chat.id, photo=open(
             f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"Рады видеть вас снова  `{info[1]}`", parse_mode='Markdown')
     return user
@@ -113,7 +117,10 @@ async def name_step(message: types.Message, state: FSMContext):
         user['photo'] = message.photo[-1]  # .file_id
     user_info['photo'] = user['photo']
     await user_info['photo'].download(f'./img/avatar/{user_info["id"]}.jpg')
-
+    if y.exists(f'/avatar/{user_info["id"]}.jpg'):
+        y.remove(f'/avatar/{user_info["id"]}.jpg')
+    y.upload(f'./img/avatar/{user_info["id"]}.jpg',f'/avatar/{user_info["id"]}.jpg')
+    os.remove(f'./img/avatar/{user_info["id"]}.jpg')
     await bot.send_message(message.chat.id, 'Теперь введите свой никнейм')
     await User_state.name.set()
 
@@ -230,17 +237,33 @@ async def show_game(message: types.Message):
                 confirm_keyboard = None
                 time = i[3].strftime("%H:%M")
                 date = i[2].strftime("%d.%m.%Y")
+                day = int(date.split(".")[0])
+                month = int(date.split(".")[1])
+                year = int(date.split(".")[2])
                 hour = int(time.split(":")[0])+4
-                time_del = datetime.datetime(2020,12,12,hour=hour,minute=int(time.split(":")[1]),second=0).strftime("%H:%M")
+                if hour > 23:
+                    hour = hour - 23
+                    day = day + 1
+                    if(day > 31):
+                        month= month + 1
+                        if(month>12):
+                            year= year + 1
+                date_del = datetime.date(year,month,day).strftime("%d.%m.%Y")
+                time_del = datetime.time(hour,int(time.split(":")[1]),00).strftime("%H:%M")
                 print("Del time:"+time_del)
+                print("Del date:"+date_del)
                 print("Now:"+datetime.datetime.now().strftime("%H:%M"))
-                print(datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date)
-                if datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date:
-                    file_name = os.path.join(
-                    f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                    os.remove(file_name)
+                print("Now:"+datetime.datetime.now().strftime("%d.%m.%Y"))
+                print(datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date_del)
+                if (datetime.datetime.now().strftime("%H:%M")>time_del) and (datetime.datetime.now().strftime("%d.%m.%Y")>=date_del):
                     db.del_prereg(i[0])
                     db.del_game(i[0])
+                    if y.exists(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg'):
+                        y.remove(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                        file_name = os.path.join(
+                        f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                        os.remove(file_name)
+                    
                     if(len(db.show_game(city_id)) == 0):
                         await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
                 else:
@@ -277,7 +300,7 @@ async def show_game(message: types.Message):
                         confirm_keyboard.add(confirm_btn1)
                         confirm_keyboard.add(confirm_btn2)
                         confirm_keyboard.add(confirm_btn3)
-
+                    y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
                     await bot.send_photo(message.chat.id, photo=open(
                         f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: {i[1]}\nДата проведения: {date}\nВремя: {time}\nЦена: `{i[5]}`\nПредоплата: `{i[8]}`\nОсталось мест: {i[4]-i[6]}\nУже идёт: {i[6]}\nПредварительно записались: {count_user-i[6]}", parse_mode='Markdown', reply_markup=confirm_keyboard)
 
@@ -482,12 +505,12 @@ async def callback_btn_user(call: CallbackQuery):
 
 
 @dp.callback_query_handler(text_contains='btn_allUser')
-async def callback_btn_cum(call: CallbackQuery):
+async def callback_btn_allUser(call: CallbackQuery):
     city_id = db.show_user(call.from_user.id)[3]
     users = db.show_all_users(city_id)
     mention = []
     for i in users:
-        mention.append(f"[{i[1]}](tg://user?id={i[0]})")
+        mention.append(f"[{i[1]}](tg://user?id={i[0]}) : Сыграл {i[3]} раз(а)")
     if len(mention) == 0:
         await bot.send_message(call.message.chat.id, "Пока никого нет")
     else:
@@ -530,6 +553,16 @@ async def callback_btn_сusers(call: CallbackQuery):
     user_id = call.data.split('_')[2]
     game_id = call.data.split('_')[3]
     db.update_count(user_id,game_id)
+    user = db.show_user(user_id)
+    count = int(user[5])
+
+    if (count == 25) or (count == 28) :
+        mention =[]
+        mention.append(f"[{user[1]}](tg://user?id={user[0]})") 
+        city_id = db.show_user(call.from_user.id)[3]
+        admin = db.find_admin(city_id)[0]
+        await bot.send_message(admin,f"Этот пользователь сыграл {count} раз(а) :\n" +
+                               '\n'.join(mention), parse_mode="Markdown")
     users = db.show_who_goes(game_id, 1)
     user = (await btn_users(users,game_id,"btn_сusers"))[0]
     await bot.edit_message_text('Кто пришел на игру?', call.from_user.id, call.message.message_id, reply_markup=user)
@@ -838,6 +871,10 @@ async def name_step(message: types.Message, state: FSMContext):
         game['photo'] = message.photo[-1]  # .file_id
     game_info['photo'] = game['photo']
     await game_info['photo'].download(f'./img/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
+    if y.exists(f'/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg'):
+        y.remove(f'/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
+    y.upload(f'./img/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg',f'/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
+    os.remove(f'./img/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
     db.Insert_game(game_info)
     await bot.send_message(message.chat.id, "Игра создана")
     await state.finish()
@@ -863,6 +900,7 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
         btn_edit_game = types.InlineKeyboardButton(
             text="Настроить эту игру", callback_data=f"btn_edit_{i[0]}")
         keyboard.add(btn_edit_game)
+        y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg',f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
         await bot.send_photo(call.message.chat.id, photo=open(
             f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: {i[1]}\nДата проведения: {date}\nВремя: {times}\nЦена: `{i[5]}`\nОсталось мест: {i[4]-i[6]}\nУже идёт: {i[6]}", parse_mode='Markdown', reply_markup=keyboard)
 
@@ -1082,8 +1120,9 @@ async def edit_profile(message: types.Message):
              await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
         else:
             result = db.search_city(info[3])
+            y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
             await bot.send_photo(message.chat.id, photo=open(
-                f'img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`", parse_mode='Markdown')
+                f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
     if message.text == 'Редактировать профиль✏️':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         btn_edit_name = types.KeyboardButton('Изменить имя(ник) ✏️')
@@ -1138,6 +1177,10 @@ async def take_date(message: types.Message, state: FSMContext):
         data['photo'] = message.photo[-1]
     user_info['photo'] = data['photo']
     await user_info['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
+    if y.exists(f'/avatar/{message.from_user.id}.jpg'):
+        y.remove(f'/avatar/{message.from_user.id}.jpg')
+    y.upload(f'./img/avatar/{message.from_user.id}.jpg',f'/avatar/{message.from_user.id}.jpg')
+    os.remove(f'./img/avatar/{message.from_user.id}.jpg')
     await bot.send_message(message.chat.id, "Фотография изменена")
     await state.finish()
 

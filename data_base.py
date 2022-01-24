@@ -1,4 +1,4 @@
-from config import DATABASE_URL
+#from config import DATABASE_URL
 import psycopg2
 
 
@@ -6,13 +6,14 @@ import psycopg2
 class Data:
     def __init__(self):
         
-        self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+        #self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+        self.connection = psycopg2.connect('postgres://qzegunvlwivsan:8d843f5c980ac3ab6a99e857ee245fa5d151883aba3cb38087ab8352444ef911@ec2-54-155-194-191.eu-west-1.compute.amazonaws.com:5432/daqkra75uanuth', sslmode='require') 
         self.cursor = self.connection.cursor()
 
     def show_user(self, user_id):
 
         self.cursor.execute(
-            f"SELECT id,name,phone,city_id,role FROM users  WHERE id={user_id}")
+            f"SELECT id,name,phone,city_id,role,count FROM users  WHERE id={user_id}")
         result = self.cursor.fetchone()
         return result
 
@@ -108,7 +109,7 @@ class Data:
 
     def show_all_users(self, parametr):
         self.cursor.execute(
-            f"SELECT id,name,role FROM users WHERE city_id={parametr}")
+            f"SELECT id,name,role,count FROM users WHERE city_id={parametr}")
         result = self.cursor.fetchall()
         return result
 
