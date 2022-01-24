@@ -1,5 +1,5 @@
 import os
 
-TOKEN = '2074833792:AAHJXMiz7LFaKuoERcbm0RulGIC0iZ0yi5U'  # токен бота
+TOKEN = '5044676384:AAG_6BFgu5z_Ur-H2Bngx4ZfPJY3pD9OlZk'  # токен бота
 
 DATABASE_URL = os.environ['DATABASE_URL'] #URL Базы данных
