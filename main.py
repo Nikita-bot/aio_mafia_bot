@@ -12,7 +12,7 @@ from aiogram.types.callback_query import CallbackQuery
 from aiogram.types.reply_keyboard import ReplyKeyboardRemove
 
 
-from config import TOKEN
+from config import TOKEN , YanToken
 from stateses import User_state, Game_state, Place_state, City_state, News_state, NewUser_state, NewGame_state
 import data_base
 import keyboards.city as kb_city
@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
-y = yadisk.YaDisk(token="AQAAAAA-k0ApAAehkTG5vWJoskKvj-XHCslJKAw")
+y = yadisk.YaDisk(token=YanToken)
 
 
 user_info = {}
