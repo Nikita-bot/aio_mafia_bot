@@ -1,4 +1,4 @@
-from config import DATABASE_URL
+#from config import DATABASE_URL
 import psycopg2
 
 
@@ -6,8 +6,8 @@ import psycopg2
 class Data:
     def __init__(self):
         
-        self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
-        #self.connection = psycopg2.connect('postgres://qzegunvlwivsan:8d843f5c980ac3ab6a99e857ee245fa5d151883aba3cb38087ab8352444ef911@ec2-54-155-194-191.eu-west-1.compute.amazonaws.com:5432/daqkra75uanuth', sslmode='require') 
+        #self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
+        self.connection = psycopg2.connect('postgres://qzegunvlwivsan:8d843f5c980ac3ab6a99e857ee245fa5d151883aba3cb38087ab8352444ef911@ec2-54-155-194-191.eu-west-1.compute.amazonaws.com:5432/daqkra75uanuth', sslmode='require') 
         self.cursor = self.connection.cursor()
 
     def show_user(self, user_id):
@@ -36,6 +36,12 @@ class Data:
         self.cursor.execute(
             f"SELECT id, name,price,seats,city_id FROM place WHERE city_id={city_id} ORDER BY id")
         result = self.cursor.fetchall()
+        return result
+
+    def show_info_place(self, place_id):
+        self.cursor.execute(
+            f"SELECT id, name,price,seats,city_id, prepayment FROM place WHERE id={place_id}")
+        result = self.cursor.fetchone()
         return result
 
     def Insert_user(self, user):
@@ -72,6 +78,12 @@ class Data:
         self.cursor.execute(
             f"SELECT city_id, place_id, date_of_games FROM games where id={game_id}")
         result = self.cursor.fetchall()
+        return result
+
+    def show_game_id(self, place_id,date):
+        self.cursor.execute(
+            f"SELECT id, definitely  FROM games where place_id={place_id} and date_of_games = '{date}'")
+        result = self.cursor.fetchone()
         return result
 
     def Insert_prereg_game(self, game_id, user_id, count):
