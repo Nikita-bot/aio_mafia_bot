@@ -1055,9 +1055,10 @@ async def new_take_date(message: types.Message, state: FSMContext):
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
         file_newname_newfile = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{dates}.jpg")
+        os.rename(file_oldname, file_newname_newfile)
         y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
         y.upload(f"./img/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg",f'/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg')
-        os.rename(file_oldname, file_newname_newfile)
+        
         await state.finish()
         db.change_game(dates, 'date_of_games', game_info[message.from_user.id][0])
         await bot.send_message(message.chat.id, "Дата изменена")
@@ -1072,8 +1073,7 @@ async def callback_admin_btn_edit_place(call: CallbackQuery):
     await bot.delete_message(chat_id=call.message.chat.id,
                                    message_id=call.message.message_id)
     keybd = (await btn_gameplace(city_id, game_id))[0]
-    await bot.edit_message_caption(chat_id=call.message.chat.id,
-                                   message_id=call.message.message_id, caption='', reply_markup=keybd)
+    await bot.send_message(call.message.chat.id,"Выберите место", reply_markup=keybd)
 
 
 @ dp.callback_query_handler(text_contains='btn_gplace')
