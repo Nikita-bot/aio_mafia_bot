@@ -1049,11 +1049,13 @@ async def new_take_date(message: types.Message, state: FSMContext):
     else:
         dates = data[2]+'-' + \
             data[1]+'-'+data[0]
-        y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+        
+        y.download(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg',f"./img/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
         file_oldname = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
         file_newname_newfile = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{dates}.jpg")
+        y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
         y.upload(f"./img/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg",f'/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg')
         os.rename(file_oldname, file_newname_newfile)
         await state.finish()
@@ -1083,12 +1085,13 @@ async def callback_admin_editplace(call: CallbackQuery):
     old_info.append(info[0][0])
     old_info.append(info[0][1])
     old_info.append(info[0][2])
-    y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+    y.download(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg',f"./img/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
     file_oldname = os.path.join(
         "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
     file_newname_newfile = os.path.join(
         "./img/afisha/", f"{old_info[0]}_{place_id}_{old_info[2]}.jpg")
     os.rename(file_oldname, file_newname_newfile)
+    y.remove(f"/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
     y.upload(f"./img/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg",f'/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg')
     db.change_game(place_id, 'place_id', game_id)
     await bot.send_message(call.message.chat.id, "Место изменено")
