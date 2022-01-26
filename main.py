@@ -925,7 +925,7 @@ async def name_step(message: types.Message, state: FSMContext):
         date = date[2]+'-' + \
             date[1]+'-'+date[0]
         await bot.send_photo(i[0], photo=open(
-                        f'img/afisha/{str(game_info["city_id"])+"_"+str(game_info["place_id"])+"_"+str(game_info["date"])}.jpg', 'rb'), caption=f"В вашем городе новая игра,\nУспей записаться!\nЗаведение: `{place[1]}`\nДата проведения: `{date}`\nВремя: `{game_info['time']}`\nЦена: `{place[2]}`\nПредоплата: `{place[5]}`\nКол-во мест: `{place[3]}`\n Для записи на игру нажми /afisha", parse_mode='Markdown')
+                        f'img/afisha/{str(game_info["city_id"])+"_"+str(game_info["place_id"])+"_"+str(game_info["date"])}.jpg', 'rb'), caption=f"В вашем городе новая игра,\nУспей записаться!\nЗаведение: `{place[1]}`\nДата проведения: `{date}`\nВремя: `{game_info['time']}`\nЦена: `{place[2]}`\nПредоплата: `{place[5]}`\nКол-во мест: `{place[3]}`\nДля записи на игру нажми /afisha", parse_mode='Markdown')
         
 
         await state.finish()
