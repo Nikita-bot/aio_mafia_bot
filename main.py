@@ -1031,7 +1031,7 @@ async def new_take_date(message: types.Message, state: FSMContext):
         data['text'] = message.text
 
     data = data['text']
-    info = db.show_info_game(game_info['game_id'])
+    info = db.show_info_game(game_info[message.from_user.id][0])
     old_info = []
     old_info.append(info[0][0])
     old_info.append(info[0][1])
