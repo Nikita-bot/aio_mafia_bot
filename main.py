@@ -3,7 +3,6 @@ import os
 import re
 import time
 import datetime
-from numpy import place
 import yadisk
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.storage import FSMContext
