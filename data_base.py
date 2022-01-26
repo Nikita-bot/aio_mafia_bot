@@ -45,13 +45,14 @@ class Data:
         return result
 
     def Insert_user(self, user):
-        self.cursor.execute(f"INSERT INTO users (id,name,phone,city_id) VALUES ({user['id']},'{user['name']}',"
-                            f"{user['phone']},{user['city_id']});")
+        self.cursor.execute(f"INSERT INTO users (id,name,phone,city_id) VALUES ({user[0]},'{user[3]}',"
+                            f"{user[1]},{user[4]});")
         self.connection.commit()
+        print(self.cursor.rowcount,'Пользователь добавлен')
 
     def Insert_game(self, game):
         self.cursor.execute(
-            f"INSERT INTO games (city_id,place_id, date_of_games,time) VALUES ({game['city_id']},{game['place_id']},'{game['date']}','{game['time']}')")
+            f"INSERT INTO games (city_id,place_id, date_of_games,time) VALUES ({game[0]},{game[1]},'{game[2]}','{game[3]}')")
         self.connection.commit()
 
     def Change_city(self, city_id, users_id, role):

@@ -1,7 +1,0 @@
-class User:
-    def __init__(self, user_id):
-        self.id = user_id
-
-        keys = ['name', 'phone', 'city_id','file_id']
-        for key in keys:
-            self.key = None

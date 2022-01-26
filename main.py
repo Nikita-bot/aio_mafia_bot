@@ -86,8 +86,9 @@ async def btn_gameplace(city_id, game_id):
 @dp.message_handler(commands=['start'])
 async def reg_message(message: types.Message):
     user_id = message.from_user.id
-    user_info['id'] = user_id
-    info = db.show_user(user_id)
+    user_info[user_id]=[user_id]
+    
+    info = db.show_user(message.from_user.id)
     if info == None:
 
         keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
@@ -107,7 +108,8 @@ async def reg_message(message: types.Message):
 
 @dp.message_handler(content_types=['contact'], state='*')
 async def photo_step(message: types.Message, state: FSMContext):
-    user_info['phone'] = message.contact.phone_number
+    user_info[message.from_user.id].append(message.contact.phone_number)
+     
     await bot.send_message(message.chat.id, 'Теперь отправьте фотографию для вашего профиля', reply_markup=types.ReplyKeyboardRemove())
     await User_state.photo.set()
 
@@ -116,12 +118,13 @@ async def photo_step(message: types.Message, state: FSMContext):
 async def name_step(message: types.Message, state: FSMContext):
     async with state.proxy() as user:
         user['photo'] = message.photo[-1]  # .file_id
-    user_info['photo'] = user['photo']
-    await user_info['photo'].download(f'./img/avatar/{user_info["id"]}.jpg')
-    if y.exists(f'/avatar/{user_info["id"]}.jpg'):
-        y.remove(f'/avatar/{user_info["id"]}.jpg')
-    y.upload(f'./img/avatar/{user_info["id"]}.jpg',f'/avatar/{user_info["id"]}.jpg')
-    os.remove(f'./img/avatar/{user_info["id"]}.jpg')
+    user_info[message.from_user.id].append(user['photo'])
+    
+    await user['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
+    if y.exists(f'/avatar/{message.from_user.id}.jpg'):
+        y.remove(f'/avatar/{message.from_user.id}.jpg')
+    y.upload(f'./img/avatar/{message.from_user.id}.jpg',f'/avatar/{message.from_user.id}.jpg')
+    os.remove(f'./img/avatar/{message.from_user.id}.jpg')
     await bot.send_message(message.chat.id, 'Теперь введите свой никнейм')
     await User_state.name.set()
 
@@ -130,7 +133,8 @@ async def name_step(message: types.Message, state: FSMContext):
 async def photo_step(message: types.Message, state: FSMContext):
     async with state.proxy() as user:
         user['name'] = message.text
-    user_info['name'] = user['name']
+    user_info[message.from_user.id].append(user['name'])
+    
     await state.finish()
     keybd = (await kb_city.keyboard_city('btn_reg'))[0]
     await bot.send_message(message.chat.id, 'Осталось только выбрать ваш город😉',
@@ -140,11 +144,12 @@ async def photo_step(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text_contains='btn_reg')
 async def callback_citys(call: CallbackQuery):
     city_id = call.data.split('_')[2]
-    user_info['city_id'] = city_id
+    user_info[call.from_user.id].append(city_id)
+    
     city_name = db.show_city_info(city_id)
 
     await bot.edit_message_text(f'Вы выбрали {city_name[0][0]}', call.from_user.id, call.message.message_id, reply_markup=None)
-    db.Insert_user(user_info)
+    db.Insert_user(user_info[call.from_user.id])
     await bot.send_message(call.message.chat.id,
                            "Регистрация прошла успешно\nРады видеть вас!")
 
@@ -864,8 +869,8 @@ async def callback_admin_btn_creategame(call: CallbackQuery):
 @ dp.callback_query_handler(text_contains='btn_place')
 async def call_btn_place_i(call: CallbackQuery):
     city_id = call.data.split("_")[3]
-    game_info['city_id'] = city_id
-    game_info['place_id'] = call.data.split("_")[2]
+    game_info[call.from_user.id] = [city_id]
+    game_info[call.from_user.id].append( call.data.split("_")[2])
     await bot.edit_message_text("Введите дату игры через '-', не раньше сегодняшнего дня\n Пример: 01-01-2022",call.message.chat.id,call.message.message_id)
     await Game_state.date.set()
 
@@ -874,17 +879,17 @@ async def call_btn_place_i(call: CallbackQuery):
 async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    game_info['date'] = data['text']
-    game_info['date'] = re.split(";|,|\n|-|:|\.", game_info['date'])
-    date = datetime.date(int(game_info['date'][2]), int(
-        game_info['date'][1]), int(game_info['date'][0]))
-    if (int(game_info['date'][0]) < 0 or int(game_info['date'][0]) > 31) or (int(game_info['date'][1]) > 12 or int(game_info['date'][1]) <= 0) or date < datetime.date.today():
+        data = data['text']
+    data = re.split(";|,|\n|-|:|\.", data)
+    date = datetime.date(int(data[2]), int(
+        data[1]), int(data[0]))
+    if (int(data[0]) < 0 or int(data[0]) > 31) or (int(data[1]) > 12 or int(data[1]) <= 0) or date < datetime.date.today():
         await bot.send_message(chat_id=message.from_user.id,
                                text="Введите правильно дату, не раньше сегодняшнего дня\nПример  `01-01-2022`", parse_mode='Markdown')
         await Game_state.date.set()
     else:
-        game_info['date'] = game_info['date'][2]+'-' + \
-            game_info['date'][1]+'-'+game_info['date'][0]
+        game_info[message.from_user.id].append(data[2]+'-' + \
+            data[1]+'-'+data[0])
         await bot.send_message(message.chat.id, "Введите время проведения игры через :")
         await Game_state.time.set()
 
@@ -893,15 +898,15 @@ async def take_date(message: types.Message, state: FSMContext):
 async def take_time(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    game_info['time'] = data['text']
-    game_info['time'] = re.split(";|,|\n|-|:|\.", data['text'])
+        time = data['text']
+    time = re.split(";|,|\n|-|:|\.", time)
    
-    if (int(game_info['time'][0]) < 0 or int(game_info['time'][0]) >= 23) or int(game_info['time'][1]) >= 59:
+    if (int(time[0]) < 0 or int(time[0]) >= 23) or int(time[1]) >= 59:
         await bot.send_message(message.chat.id, "Введите правильно время\nПример  `22:22`", parse_mode='Markdown')
         await Game_state.time.set()
 
     else:
-        game_info['time'] = game_info['time'][0]+':'+game_info['time'][1]
+        game_info[message.from_user.id].append(time[0]+':'+time[1])
         await bot.send_message(message.chat.id, "Отправте фото игры")
         await Game_state.photo.set()
 
@@ -910,25 +915,23 @@ async def take_time(message: types.Message, state: FSMContext):
 async def name_step(message: types.Message, state: FSMContext):
     async with state.proxy() as game:
         game['photo'] = message.photo[-1]  # .file_id
-    game_info['photo'] = game['photo']
-    await game_info['photo'].download(f'./img/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
-    if y.exists(f'/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg'):
-        y.remove(f'/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
-    y.upload(f'./img/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg',f'/afisha/{game_info["city_id"]}_{game_info["place_id"]}_{game_info["date"]}.jpg')
-    db.Insert_game(game_info)
+    await game['photo'].download(f'./img/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
+    if y.exists(f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg'):
+        y.remove(f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
+    y.upload(f'./img/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg',f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
+    db.Insert_game(game_info[message.from_user.id])
     await bot.send_message(message.chat.id, "Игра создана")
-    users = db.show_all_users(game_info['city_id'])
+    users = db.show_all_users(game_info[message.from_user.id][0])
     for i in users:
-        place = db.show_info_place(game_info['place_id'])    
-        y.download(f'afisha/{str(game_info["city_id"])+"_"+str(game_info["place_id"])+"_"+str(game_info["date"])}.jpg', f'img/afisha/{str(game_info["city_id"])+"_"+str(game_info["place_id"])+"_"+str(game_info["date"])}.jpg')
-        date = re.split(";|,|\n|-|:|\.", game_info['date'])
+        place = db.show_info_place(game_info[message.from_user.id][1])    
+        y.download(f'/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg', f'img/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg')
+        date = re.split(";|,|\n|-|:|\.", game_info[message.from_user.id][2])
         date = date[2]+'-' + \
             date[1]+'-'+date[0]
         await bot.send_photo(i[0], photo=open(
-                        f'img/afisha/{str(game_info["city_id"])+"_"+str(game_info["place_id"])+"_"+str(game_info["date"])}.jpg', 'rb'), caption=f"В вашем городе новая игра,\nУспей записаться!\nЗаведение: `{place[1]}`\nДата проведения: `{date}`\nВремя: `{game_info['time']}`\nЦена: `{place[2]}`\nПредоплата: `{place[5]}`\nКол-во мест: `{place[3]}`\nДля записи на игру нажми /afisha", parse_mode='Markdown')
-        
-
-        await state.finish()
+                        f'img/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg', 'rb'), caption=f"В вашем городе новая игра,\nУспей записаться!\nЗаведение: `{place[1]}`\nДата проведения: `{date}`\nВремя: `{game_info[message.from_user.id][3]}`\nЦена: `{place[2]}`\nПредоплата: `{place[5]}`\nКол-во мест: `{place[3]}`\nДля записи на игру нажми /afisha", parse_mode='Markdown')
+    del game_info[message.from_user.id]
+    await state.finish()
 
 # _____EDIT_GAME______
 
@@ -979,8 +982,9 @@ async def callback_admin_btn_this_game(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains="btn_ed_time")
 async def callback_admin_btn_edit_time(call: CallbackQuery):
-    game_id = call.data.split("_")[3]
-    game_info['game_id'] = game_id
+    game_id = call.data.split("_")[3]#game_id
+    game_info[call.from_user.id] =  [game_id]
+    
     await bot.delete_message(chat_id=call.message.chat.id,
                                    message_id=call.message.message_id)
     await bot.send_message(call.message.chat.id, "Введите время")
@@ -991,19 +995,21 @@ async def callback_admin_btn_edit_time(call: CallbackQuery):
 async def new_take_time(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    game_info['time'] = data['text']
-    game_info['time'] = re.split(";|,|\n|-|:|\.", game_info['time'])
+        time = data['text']
+    
+    time = re.split(";|,|\n|-|:|\.",time)
     
     
-    if (int(game_info['time'][0]) < 0 or int(game_info['time'][0]) >= 23) or int(game_info['time'][1]) >= 59:
+    if (int(time[0]) < 0 or int(time[0]) >= 23) or int(time[1]) >= 59:
 
         await bot.send_message(message.chat.id, "Введите правильно время\nПример  `22:22`", parse_mode='Markdown')
         await NewGame_state.time.set()
 
     else:
-        times = game_info['time'][0]+':'+game_info['time'][1]
+        times = time[0]+':'+time[1]
         await state.finish()
-        db.change_game(times, 'time', game_info['game_id'])
+        db.change_game(times, 'time', game_info[message.from_user.id][0])
+        del game_info[message.from_user.id]
         await bot.send_message(message.chat.id, "Время изменено")
         await state.finish()
 
@@ -1011,7 +1017,7 @@ async def new_take_time(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text_contains='btn_ed_date')
 async def callback_admin_btn_edit_date(call: CallbackQuery):
     game_id = call.data.split("_")[3]
-    game_info['game_id'] = game_id
+    game_info[call.from_user.id] =  [game_id]
     await bot.delete_message(chat_id=call.message.chat.id,
                                    message_id=call.message.message_id)
     await bot.send_message(
@@ -1024,34 +1030,34 @@ async def new_take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
 
-    game_info['date'] = data['text']
+    data = data['text']
     info = db.show_info_game(game_info['game_id'])
     old_info = []
     old_info.append(info[0][0])
     old_info.append(info[0][1])
     old_info.append(info[0][2])
 
-    game_info['date'] = re.split(";|,|\n|-|:|\.", game_info['date'])
-    date = datetime.date(int(game_info['date'][2]), int(
-        game_info['date'][1]), int(game_info['date'][0]))
+    data = re.split(";|,|\n|-|:|\.", data)
+    date = datetime.date(int(data[2]), int(data[1]), int(data[0]))
     print(date)
     print(datetime.date.today())
-    if (int(game_info['date'][0]) < 0 or int(game_info['date'][0]) > 31) or (int(game_info['date'][1]) > 12 or int(game_info['date'][1]) <= 0) or date < datetime.date.today():
+    if (int(data[0]) < 0 or int(data[0]) > 31) or (int(data[1]) > 12 or int(data[1]) <= 0) or date < datetime.date.today():
         await bot.send_message(chat_id=message.from_user.id,
                                text="Введите правильно дату, не раньше сегодняшней\nПример  `01-01-2022`", parse_mode='Markdown')
         await NewGame_state.date.set()
 
     else:
-        dates = game_info['date'][2]+'-' + \
-            game_info['date'][1]+'-'+game_info['date'][0]
+        dates = data[2]+'-' + \
+            data[1]+'-'+data[0]
         file_oldname = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
         file_newname_newfile = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{dates}.jpg")
         os.rename(file_oldname, file_newname_newfile)
         await state.finish()
-        db.change_game(dates, 'date_of_games', game_info['game_id'])
+        db.change_game(dates, 'date_of_games', game_info[message.from_user.id][0])
         await bot.send_message(message.chat.id, "Дата изменена")
+        del game_info[message.from_user.id]
         await state.finish()
 
 
@@ -1225,8 +1231,8 @@ async def edit_profile(message: types.Message):
 async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    user_info['name'] = data['text']
-    db.Change_nickName(message.from_user.id, user_info['name'])
+    
+    db.Change_nickName(message.from_user.id, data['text'])
     await state.finish()
     await bot.send_message(message.chat.id, "Имя пользователя изменено")
 
@@ -1235,8 +1241,8 @@ async def take_date(message: types.Message, state: FSMContext):
 async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['photo'] = message.photo[-1]
-    user_info['photo'] = data['photo']
-    await user_info['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
+    
+    await data['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
     if y.exists(f'/avatar/{message.from_user.id}.jpg'):
         y.remove(f'/avatar/{message.from_user.id}.jpg')
     y.upload(f'./img/avatar/{message.from_user.id}.jpg',f'/avatar/{message.from_user.id}.jpg')
