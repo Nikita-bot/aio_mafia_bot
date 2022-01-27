@@ -1203,28 +1203,35 @@ async def show_profile(message: types.Message):
 
 @ dp.message_handler(content_types=['text'])
 async def edit_profile(message: types.Message):
+    info = db.show_user(message.from_user.id)
     if message.text == 'Показать профиль🖼':
-        user_id = message.from_user.id
-        print(user_id,"Смотрит профиль")
-        info = db.show_user(user_id)
-        if info[3]==0:
-             await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+        if info == None:
+            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
         else:
-            result = db.search_city(info[3])
-            y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
-            await bot.send_photo(message.chat.id, photo=open(
-                f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
-            os.remove(f'./img/avatar/{user_id}.jpg')
+            user_id = message.from_user.id
+            print(user_id,"Смотрит профиль")
+            info = db.show_user(user_id)
+            if info[3]==0:
+                await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+            else:
+                result = db.search_city(info[3])
+                y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
+                await bot.send_photo(message.chat.id, photo=open(
+                    f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
+                os.remove(f'./img/avatar/{user_id}.jpg')
     if message.text == 'Редактировать профиль✏️':
-        print(message.from_user.id,"Хочет отредактировать профиль")
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-        btn_edit_name = types.KeyboardButton('Изменить имя(ник) ✏️')
-        btn_edit_city = types.KeyboardButton('Изменить город 🏙')
-        btn_edit_avatar = types.KeyboardButton('Изменить фото профиля👨')
-        btn_back = types.KeyboardButton('Выйти из меню 🔚')
-        markup.add(btn_edit_name, btn_edit_city, btn_edit_avatar,btn_back)
-        await bot.send_message(
-            message.chat.id, "Давайте изменим ваш профиль 😉", reply_markup=markup)
+        if info == None:
+            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        else:
+            print(message.from_user.id,"Хочет отредактировать профиль")
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+            btn_edit_name = types.KeyboardButton('Изменить имя(ник) ✏️')
+            btn_edit_city = types.KeyboardButton('Изменить город 🏙')
+            btn_edit_avatar = types.KeyboardButton('Изменить фото профиля👨')
+            btn_back = types.KeyboardButton('Выйти из меню 🔚')
+            markup.add(btn_edit_name, btn_edit_city, btn_edit_avatar,btn_back)
+            await bot.send_message(
+                message.chat.id, "Давайте изменим ваш профиль 😉", reply_markup=markup)
     if message.text == 'Выйти из меню 🔚':
         print("Отмена редактирования")
         markup = types.ReplyKeyboardRemove()
@@ -1232,29 +1239,38 @@ async def edit_profile(message: types.Message):
             message.chat.id, "Надеюсь вы точно настроили профиль 😉", reply_markup=markup)
 
     if message.text == 'Изменить имя(ник) ✏️':
-        print(message.from_user.id, "Меняет имя")
-        markup = types.ReplyKeyboardRemove()
-        await bot.send_message(message.chat.id, "Введите новое *имя(ник)*",
-                               parse_mode='markdown', reply_markup=markup)
-        await NewUser_state.name.set()
+        if info == None:
+            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        else:
+            print(message.from_user.id, "Меняет имя")
+            markup = types.ReplyKeyboardRemove()
+            await bot.send_message(message.chat.id, "Введите новое *имя(ник)*",
+                                parse_mode='markdown', reply_markup=markup)
+            await NewUser_state.name.set()
 
     if message.text == 'Изменить фото профиля👨':
-        print(message.from_user.id, "Меняет фото")
-        user_id = message.from_user.id
-        markup = types.ReplyKeyboardRemove()
-        await bot.send_message(
-            message.chat.id, "Отправьте новое фото профиля", reply_markup=markup)
-        await NewUser_state.photo.set()
+        if info == None:
+            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        else:
+            print(message.from_user.id, "Меняет фото")
+            user_id = message.from_user.id
+            markup = types.ReplyKeyboardRemove()
+            await bot.send_message(
+                message.chat.id, "Отправьте новое фото профиля", reply_markup=markup)
+            await NewUser_state.photo.set()
 
     if message.text == 'Изменить город 🏙':
-        print(message.from_user.id, "Меняет город")
-        await bot.send_message(message.chat.id, "Хорошо подгружаем города",
-                               parse_mode='markdown', reply_markup=types.ReplyKeyboardRemove())
-        time.sleep(1)
-        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id+1)
-        keybd = (await kb_city.keyboard_city('btn_changecity'))[0]
-        await bot.send_message(message.chat.id, "Выберете новый *город*",
-                               parse_mode='markdown', reply_markup=keybd)
+        if info == None:
+            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        else:
+            print(message.from_user.id, "Меняет город")
+            await bot.send_message(message.chat.id, "Хорошо подгружаем города",
+                                parse_mode='markdown', reply_markup=types.ReplyKeyboardRemove())
+            time.sleep(1)
+            await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id+1)
+            keybd = (await kb_city.keyboard_city('btn_changecity'))[0]
+            await bot.send_message(message.chat.id, "Выберете новый *город*",
+                                parse_mode='markdown', reply_markup=keybd)
 
 
 @dp.message_handler(state=NewUser_state.name)
