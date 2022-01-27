@@ -1216,7 +1216,7 @@ async def edit_profile(message: types.Message):
                 f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
             os.remove(f'./img/avatar/{user_id}.jpg')
     if message.text == 'Редактировать профиль✏️':
-        print(user_id,"Хочет отредактировать профиль")
+        print(message.from_user.id,"Хочет отредактировать профиль")
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         btn_edit_name = types.KeyboardButton('Изменить имя(ник) ✏️')
         btn_edit_city = types.KeyboardButton('Изменить город 🏙')
@@ -1232,14 +1232,14 @@ async def edit_profile(message: types.Message):
             message.chat.id, "Надеюсь вы точно настроили профиль 😉", reply_markup=markup)
 
     if message.text == 'Изменить имя(ник) ✏️':
-        print(user_id, "Меняет имя")
+        print(message.from_user.id, "Меняет имя")
         markup = types.ReplyKeyboardRemove()
         await bot.send_message(message.chat.id, "Введите новое *имя(ник)*",
                                parse_mode='markdown', reply_markup=markup)
         await NewUser_state.name.set()
 
     if message.text == 'Изменить фото профиля👨':
-        print(user_id, "Меняет фото")
+        print(message.from_user.id, "Меняет фото")
         user_id = message.from_user.id
         markup = types.ReplyKeyboardRemove()
         await bot.send_message(
@@ -1247,7 +1247,7 @@ async def edit_profile(message: types.Message):
         await NewUser_state.photo.set()
 
     if message.text == 'Изменить город 🏙':
-        print(user_id, "Меняет город")
+        print(message.from_user.id, "Меняет город")
         await bot.send_message(message.chat.id, "Хорошо подгружаем города",
                                parse_mode='markdown', reply_markup=types.ReplyKeyboardRemove())
         time.sleep(1)
