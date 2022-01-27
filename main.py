@@ -334,8 +334,6 @@ async def call_btn_confirm(call: CallbackQuery):
     user_id = call.from_user.id
     game_info = call.data.split("_")
     game_id = game_info[2]
-    city_id = db.show_user(message.from_user.id)[3]
-    games = db.show_game(city_id)
     count = int(game_info[1])
     place_left = int(game_info[4])
     print("pl:"+str(place_left))
