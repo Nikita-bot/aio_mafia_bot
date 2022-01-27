@@ -199,7 +199,7 @@ async def corporate_message(message: types.Message):
 
 @dp.callback_query_handler(text_contains='yes')
 async def callback_yes(call: CallbackQuery):
-    info = db.show_user(message.from_user.id)
+    info = db.show_user(call.from_user.id)
     if info == None:
         await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
