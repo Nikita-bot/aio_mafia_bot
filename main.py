@@ -194,14 +194,14 @@ async def corporate_message(message: types.Message):
     keyboad_corp.add(btn_yes)
     keyboad_corp.add(btn_no)
     await bot.send_message(
-                message.chat.id, 'Вы хотите аказать корпоративную игру?', reply_markup=keyboad_corp)
+                message.chat.id, 'Вы хотите заказать корпоративную игру?', reply_markup=keyboad_corp)
 
 
 @dp.callback_query_handler(text_contains='yes')
 async def callback_yes(call: CallbackQuery):
     info = db.show_user(call.from_user.id)
     if info == None:
-        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        await bot.send_message(call.message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
         await bot.edit_message_text("С вами скоро свяжется админ вашего города", call.from_user.id, call.message.message_id)
         user  = db.show_user(call.from_user.id)
