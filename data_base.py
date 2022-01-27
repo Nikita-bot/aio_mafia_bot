@@ -48,7 +48,7 @@ class Data:
         self.cursor.execute(f"INSERT INTO users (id,name,phone,city_id) VALUES ({user[0]},'{user[3]}',"
                             f"{user[1]},{user[4]});")
         self.connection.commit()
-        print(self.cursor.rowcount,'Пользователь добавлен')
+        print(self.cursor.rowcount,f'Пользователь добавлен {user[3]}')
 
     def Insert_game(self, game):
         self.cursor.execute(

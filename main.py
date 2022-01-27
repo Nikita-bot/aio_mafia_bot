@@ -85,6 +85,7 @@ async def btn_gameplace(city_id, game_id):
 
 @dp.message_handler(commands=['start'])
 async def reg_message(message: types.Message):
+    print("Кто-то начал регистрацию")
     user_id = message.from_user.id
     user_info[user_id]=[user_id]
     
@@ -186,6 +187,7 @@ async def help_message(message: types.Message):
 # _____CORPORATE____
 @dp.message_handler(commands=['corporate'])
 async def corporate_message(message: types.Message):
+    print("Кто-то смотрит заказ корпоративной игры")
     keyboad_corp = types.InlineKeyboardMarkup()
     btn_yes = types.InlineKeyboardButton(
                 text='Да', callback_data='yes')
@@ -343,7 +345,9 @@ async def callback_btn_who_goes(call: CallbackQuery):
 
 @ dp.callback_query_handler(text_contains='confirm')
 async def call_btn_confirm(call: CallbackQuery):
+    
     user_id = call.from_user.id
+    print(user_id, "Подал заявку на игру")
     game_info = call.data.split("_")
     game_id = game_info[2]
     count = int(game_info[1])
@@ -1201,6 +1205,7 @@ async def show_profile(message: types.Message):
 async def edit_profile(message: types.Message):
     if message.text == 'Показать профиль🖼':
         user_id = message.from_user.id
+        print(user_id,"Смотрит профиль")
         info = db.show_user(user_id)
         if info[3]==0:
              await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
@@ -1211,6 +1216,7 @@ async def edit_profile(message: types.Message):
                 f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
             os.remove(f'./img/avatar/{user_id}.jpg')
     if message.text == 'Редактировать профиль✏️':
+        print(user_id,"Хочет отредактировать профиль")
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         btn_edit_name = types.KeyboardButton('Изменить имя(ник) ✏️')
         btn_edit_city = types.KeyboardButton('Изменить город 🏙')
@@ -1220,17 +1226,20 @@ async def edit_profile(message: types.Message):
         await bot.send_message(
             message.chat.id, "Давайте изменим ваш профиль 😉", reply_markup=markup)
     if message.text == 'Выйти из меню 🔚':
+        print("Отмена редактирования")
         markup = types.ReplyKeyboardRemove()
         await bot.send_message(
             message.chat.id, "Надеюсь вы точно настроили профиль 😉", reply_markup=markup)
 
     if message.text == 'Изменить имя(ник) ✏️':
+        print(user_id, "Меняет имя")
         markup = types.ReplyKeyboardRemove()
         await bot.send_message(message.chat.id, "Введите новое *имя(ник)*",
                                parse_mode='markdown', reply_markup=markup)
         await NewUser_state.name.set()
 
     if message.text == 'Изменить фото профиля👨':
+        print(user_id, "Меняет фото")
         user_id = message.from_user.id
         markup = types.ReplyKeyboardRemove()
         await bot.send_message(
@@ -1238,7 +1247,7 @@ async def edit_profile(message: types.Message):
         await NewUser_state.photo.set()
 
     if message.text == 'Изменить город 🏙':
-
+        print(user_id, "Меняет город")
         await bot.send_message(message.chat.id, "Хорошо подгружаем города",
                                parse_mode='markdown', reply_markup=types.ReplyKeyboardRemove())
         time.sleep(1)
