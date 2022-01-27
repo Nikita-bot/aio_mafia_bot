@@ -162,22 +162,26 @@ async def about(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def help_message(message: types.Message):
-    city  = db.show_user(message.from_user.id)[3]
-    if city==0:
-           await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+    info = db.show_user(message.from_user.id)
+    if info == None:
+        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
-        admin = db.find_admin(city)
-        if(admin is None):
-            main = db.find_main()
-            mention = []
-            mention.append(f"[{main[2]}](tg://user?id={main[0]})")
-            await bot.send_message(message.chat.id, "Администратора в вашем городе пока не назвачили, по всем вопросам пишите главному:\n" +
-                                    '\n'.join(mention), parse_mode="Markdown")
+        city  = db.show_user(message.from_user.id)[3]
+        if city==0:
+            await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
         else:
-            mention = []
-            mention.append(f"[{admin[2]}](tg://user?id={admin[0]})")
-            await bot.send_message(message.chat.id, "По всем вопросам пишите админу города:\n" +
-                                    '\n'.join(mention), parse_mode="Markdown")
+            admin = db.find_admin(city)
+            if(admin is None):
+                main = db.find_main()
+                mention = []
+                mention.append(f"[{main[2]}](tg://user?id={main[0]})")
+                await bot.send_message(message.chat.id, "Администратора в вашем городе пока не назвачили, по всем вопросам пишите главному:\n" +
+                                        '\n'.join(mention), parse_mode="Markdown")
+            else:
+                mention = []
+                mention.append(f"[{admin[2]}](tg://user?id={admin[0]})")
+                await bot.send_message(message.chat.id, "По всем вопросам пишите админу города:\n" +
+                                        '\n'.join(mention), parse_mode="Markdown")
 # _______________
 # _____CORPORATE____
 @dp.message_handler(commands=['corporate'])
@@ -195,20 +199,24 @@ async def corporate_message(message: types.Message):
 
 @dp.callback_query_handler(text_contains='yes')
 async def callback_yes(call: CallbackQuery):
-    await bot.edit_message_text("С вами скоро свяжется админ вашего города", call.from_user.id, call.message.message_id)
-    user  = db.show_user(call.from_user.id)
-    if user[3]==0:
-        await bot.send_message(call.message.chat.id,"Для начала выберите город в настройках профиля")
+    info = db.show_user(message.from_user.id)
+    if info == None:
+        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
-        admin = db.find_admin(user[3])
+        await bot.edit_message_text("С вами скоро свяжется админ вашего города", call.from_user.id, call.message.message_id)
+        user  = db.show_user(call.from_user.id)
+        if user[3]==0:
+            await bot.send_message(call.message.chat.id,"Для начала выберите город в настройках профиля")
+        else:
+            admin = db.find_admin(user[3])
 
-        main = db.find_main()
-        mention = []
-        mention.append(f"[{user[1]}](tg://user?id={user[0]})")
-        await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
-                                    '\n'.join(mention), parse_mode="Markdown")
-        await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
-                                    '\n'.join(mention), parse_mode="Markdown")
+            main = db.find_main()
+            mention = []
+            mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+            await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
+                                        '\n'.join(mention), parse_mode="Markdown")
+            await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
+                                        '\n'.join(mention), parse_mode="Markdown")
         
 
 
@@ -221,95 +229,99 @@ async def callback_no(call: CallbackQuery):
 # _____Afisha_____
 @dp.message_handler(commands=['afisha'])
 async def show_game(message: types.Message):
-    city_id = db.show_user(message.from_user.id)[3]
-    if city_id==0:
-           await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+    info = db.show_user(message.from_user.id)
+    if info == None:
+        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
-        result_game = db.show_game(city_id)
-        result_pre_reg = db.show_prereg_game(message.from_user.id)
-        count_user = 0
-        if(len(result_pre_reg) == 0):
-            result_pre_reg.append([0, 0])
-        if(len(result_game) == 0):
-            await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
+        city_id = db.show_user(message.from_user.id)[3]
+        if city_id==0:
+            await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
         else:
+            result_game = db.show_game(city_id)
+            result_pre_reg = db.show_prereg_game(message.from_user.id)
+            count_user = 0
+            if(len(result_pre_reg) == 0):
+                result_pre_reg.append([0, 0])
+            if(len(result_game) == 0):
+                await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
+            else:
 
-            game_id = []
+                game_id = []
 
-            for i in result_pre_reg:
-                game_id.append(i[0])
+                for i in result_pre_reg:
+                    game_id.append(i[0])
 
-            for i in result_game:
-                confirm_keyboard = None
-                time = i[3].strftime("%H:%M")
-                date = i[2].strftime("%d.%m.%Y")
-                day = int(date.split(".")[0])
-                month = int(date.split(".")[1])
-                year = int(date.split(".")[2])
-                hour = int(time.split(":")[0])+4
-                if hour > 23:
-                    hour = hour - 23
-                    day = day + 1
-                    if(day > 31):
-                        month= month + 1
-                        if(month>12):
-                            year= year + 1
-                date_del = datetime.date(year,month,day).strftime("%d.%m.%Y")
-                time_del = datetime.time(hour,int(time.split(":")[1]),00).strftime("%H:%M")
-                print("Del time:"+time_del)
-                print("Del date:"+date_del)
-                print("Now:"+datetime.datetime.now().strftime("%H:%M"))
-                print("Now:"+datetime.datetime.now().strftime("%d.%m.%Y"))
-                print(datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date_del)
-                if (datetime.datetime.now().strftime("%H:%M")>time_del) and (datetime.datetime.now().strftime("%d.%m.%Y")>=date_del):
-                    db.del_prereg(i[0])
-                    db.del_game(i[0])
-                    if y.exists(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg'):
-                        y.remove(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                        file_name = os.path.join(
-                        f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                        os.remove(file_name)
-                       
-                    
-                    if(len(db.show_game(city_id)) == 0):
-                        await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
-                else:
-
-                    confirm_keyboard = types.InlineKeyboardMarkup()
-                    who_goes_btn = types.InlineKeyboardButton(
-                        text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}")
-                    confirm_keyboard.add(who_goes_btn)
-
-                    if i[0] in game_id:
-
-                        x = game_id[game_id.index(i[0])]
-                        count_user = db.show_count_prereg_game(x)[0][0]
-
+                for i in result_game:
+                    confirm_keyboard = None
+                    time = i[3].strftime("%H:%M")
+                    date = i[2].strftime("%d.%m.%Y")
+                    day = int(date.split(".")[0])
+                    month = int(date.split(".")[1])
+                    year = int(date.split(".")[2])
+                    hour = int(time.split(":")[0])+4
+                    if hour > 23:
+                        hour = hour - 23
+                        day = day + 1
+                        if(day > 31):
+                            month= month + 1
+                            if(month>12):
+                                year= year + 1
+                    date_del = datetime.date(year,month,day).strftime("%d.%m.%Y")
+                    time_del = datetime.time(hour,int(time.split(":")[1]),00).strftime("%H:%M")
+                    print("Del time:"+time_del)
+                    print("Del date:"+date_del)
+                    print("Now:"+datetime.datetime.now().strftime("%H:%M"))
+                    print("Now:"+datetime.datetime.now().strftime("%d.%m.%Y"))
+                    print(datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date_del)
+                    if (datetime.datetime.now().strftime("%H:%M")>time_del) and (datetime.datetime.now().strftime("%d.%m.%Y")>=date_del):
+                        db.del_prereg(i[0])
+                        db.del_game(i[0])
+                        if y.exists(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg'):
+                            y.remove(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                            file_name = os.path.join(
+                            f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                            os.remove(file_name)
+                        
+                        
+                        if(len(db.show_game(city_id)) == 0):
+                            await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
                     else:
-                        if db.show_count_prereg_game(i[0])[0][0] is None:
-                            count_user = 0
-                        else:
-                            count_user = db.show_count_prereg_game(i[0])[0][0]
-                        place_left = i[4]-i[6]
+
                         confirm_keyboard = types.InlineKeyboardMarkup()
-                        confirm_btn = types.InlineKeyboardButton(
-                            text="Я иду ✔️", callback_data=f"confirm_1_{i[0]}_{i[8]}_{place_left}")
-                        confirm_btn1 = types.InlineKeyboardButton(
-                            text="Я иду + 1 ✔️", callback_data=f"confirm_2_{i[0]}_{i[8]}_{place_left}")
-                        confirm_btn2 = types.InlineKeyboardButton(
-                            text="Я иду + 2 ✔️", callback_data=f"confirm_3_{i[0]}_{i[8]}_{place_left}")
-                        confirm_btn3 = types.InlineKeyboardButton(
-                            text="Я иду + 3 ✔️", callback_data=f"confirm_4_{i[0]}_{i[8]}_{place_left}")
                         who_goes_btn = types.InlineKeyboardButton(
                             text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}")
                         confirm_keyboard.add(who_goes_btn)
-                        confirm_keyboard.add(confirm_btn)
-                        confirm_keyboard.add(confirm_btn1)
-                        confirm_keyboard.add(confirm_btn2)
-                        confirm_keyboard.add(confirm_btn3)
-                    y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                    await bot.send_photo(message.chat.id, photo=open(
-                        f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: `{i[1]}`\nДата проведения: `{date}`\nВремя: `{time}`\nЦена: `{i[5]}`\nПредоплата: `{i[8]}`\nОсталось мест: `{i[4]-i[6]}`\nУже идёт: `{i[6]}`\nПредварительно записались: `{count_user-i[6]}`", parse_mode='Markdown', reply_markup=confirm_keyboard)
+
+                        if i[0] in game_id:
+
+                            x = game_id[game_id.index(i[0])]
+                            count_user = db.show_count_prereg_game(x)[0][0]
+
+                        else:
+                            if db.show_count_prereg_game(i[0])[0][0] is None:
+                                count_user = 0
+                            else:
+                                count_user = db.show_count_prereg_game(i[0])[0][0]
+                            place_left = i[4]-i[6]
+                            confirm_keyboard = types.InlineKeyboardMarkup()
+                            confirm_btn = types.InlineKeyboardButton(
+                                text="Я иду ✔️", callback_data=f"confirm_1_{i[0]}_{i[8]}_{place_left}")
+                            confirm_btn1 = types.InlineKeyboardButton(
+                                text="Я иду + 1 ✔️", callback_data=f"confirm_2_{i[0]}_{i[8]}_{place_left}")
+                            confirm_btn2 = types.InlineKeyboardButton(
+                                text="Я иду + 2 ✔️", callback_data=f"confirm_3_{i[0]}_{i[8]}_{place_left}")
+                            confirm_btn3 = types.InlineKeyboardButton(
+                                text="Я иду + 3 ✔️", callback_data=f"confirm_4_{i[0]}_{i[8]}_{place_left}")
+                            who_goes_btn = types.InlineKeyboardButton(
+                                text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}")
+                            confirm_keyboard.add(who_goes_btn)
+                            confirm_keyboard.add(confirm_btn)
+                            confirm_keyboard.add(confirm_btn1)
+                            confirm_keyboard.add(confirm_btn2)
+                            confirm_keyboard.add(confirm_btn3)
+                        y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                        await bot.send_photo(message.chat.id, photo=open(
+                            f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: `{i[1]}`\nДата проведения: `{date}`\nВремя: `{time}`\nЦена: `{i[5]}`\nПредоплата: `{i[8]}`\nОсталось мест: `{i[4]-i[6]}`\nУже идёт: `{i[6]}`\nПредварительно записались: `{count_user-i[6]}`", parse_mode='Markdown', reply_markup=confirm_keyboard)
                     
 
 
@@ -1173,12 +1185,16 @@ async def call_btn_btn_gusers(call: CallbackQuery):
 
 @ dp.message_handler(commands=['profile'])
 async def show_profile(message: types.Message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    btn_edit_profile = types.KeyboardButton('Редактировать профиль✏️')
-    btn_show_profile = types.KeyboardButton('Показать профиль🖼')
-    btn_back = types.KeyboardButton('Выйти из меню 🔚')
-    markup.add(btn_show_profile, btn_edit_profile, btn_back)
-    await bot.send_message(message.chat.id, 'Что вы хотите сделать с профилем?', reply_markup=markup)
+    info = db.show_user(message.from_user.id)
+    if info == None:
+        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+        btn_edit_profile = types.KeyboardButton('Редактировать профиль✏️')
+        btn_show_profile = types.KeyboardButton('Показать профиль🖼')
+        btn_back = types.KeyboardButton('Выйти из меню 🔚')
+        markup.add(btn_show_profile, btn_edit_profile, btn_back)
+        await bot.send_message(message.chat.id, 'Что вы хотите сделать с профилем?', reply_markup=markup)
 
 
 @ dp.message_handler(content_types=['text'])
