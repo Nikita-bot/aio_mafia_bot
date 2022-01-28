@@ -268,7 +268,7 @@ async def show_game(message: types.Message):
                     month = int(date.split(".")[1])
                     year = int(date.split(".")[2])
                     hour = int(time.split(":")[0])+4
-                    if hour > 23:
+                    if hour >= 23:
                         hour = hour - 23
                         day = day + 1
                         if(day > 31):
