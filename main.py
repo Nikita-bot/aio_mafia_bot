@@ -161,6 +161,13 @@ async def about(message: types.Message):
     await bot.send_message(message.chat.id, "Клуб легендарной игры Мафия в городах:\n Кемерово;\n Новокузнецк;\n Новосибирск;\n 🎭Мы верны традициям Мафии\n 🔝Легендарная Мафия в Сибири\n 😈Новичкам - добро пожаловать\n ☺️Тысячи довольных игроков\n1️⃣1️⃣ лет играем вместе с вами")
 # _____HELP_____
 
+
+@dp.message_handler(commands=['rules'])
+async def rule(message: types.Message):
+    await bot.send_message(message.chat.id, "Наши правила:\n")
+
+
+
 @dp.message_handler(commands=['help'])
 async def help_message(message: types.Message):
     info = db.show_user(message.from_user.id)
@@ -290,9 +297,9 @@ async def show_game(message: types.Message):
                     else:
 
                         confirm_keyboard = types.InlineKeyboardMarkup()
-                        who_goes_btn = types.InlineKeyboardButton(
-                            text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}")
-                        confirm_keyboard.add(who_goes_btn)
+                        who_goes = types.InlineKeyboardButton(
+                            text="Кто идёт?", callback_data=f"who_goes_{i[0]}_{date}")
+                        confirm_keyboard.add(who_goes)
 
                         if i[0] in game_id:
 
@@ -314,9 +321,9 @@ async def show_game(message: types.Message):
                                 text="Я иду + 2 ✔️", callback_data=f"confirm_3_{i[0]}_{i[8]}_{place_left}")
                             confirm_btn3 = types.InlineKeyboardButton(
                                 text="Я иду + 3 ✔️", callback_data=f"confirm_4_{i[0]}_{i[8]}_{place_left}")
-                            who_goes_btn = types.InlineKeyboardButton(
-                                text="Кто идёт?", callback_data=f"who_goes_btn_{i[0]}")
-                            confirm_keyboard.add(who_goes_btn)
+                            who_goes = types.InlineKeyboardButton(
+                                text="Кто идёт?", callback_data=f"who_goes_{i[0]}_{date}")
+                            confirm_keyboard.add(who_goes)
                             confirm_keyboard.add(confirm_btn)
                             confirm_keyboard.add(confirm_btn1)
                             confirm_keyboard.add(confirm_btn2)
@@ -327,19 +334,19 @@ async def show_game(message: types.Message):
                     
 
 
-@dp.callback_query_handler(text_contains='who_goes_btn')
+@dp.callback_query_handler(text_contains='who_goes')
 async def callback_btn_who_goes(call: CallbackQuery):
-
     game_info = call.data.split("_")
     mention = []
-    users = db.show_who_goes(game_info[3], 1)
+    date = game_info[3]
+    users = db.show_who_goes(game_info[2], 1)
     for i in users:
-        mention.append(f"[{i[0]}](tg://user?id={i[1]})")
+        mention.append(f"{i.index(i[0])+1}. {i[0]}")
     if len(mention) == 0:
         await bot.send_message(
             call.message.chat.id, "Пока никто не регистрировался\nНо ты можешь стать первым(ой)!")
     else:
-        await bot.send_message(call.message.chat.id, "На игру записались:\n" +
+        await bot.send_message(call.message.chat.id, f"Запись на игру {date}:\n" +
                                '\n'.join(mention), parse_mode="Markdown")
 
 
