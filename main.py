@@ -3,6 +3,7 @@ import os
 import re
 import time
 import datetime
+from numpy import delete
 import yadisk
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.storage import FSMContext
@@ -10,15 +11,17 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import inline_keyboard, message, user
 from aiogram.types.callback_query import CallbackQuery
 from aiogram.types.reply_keyboard import ReplyKeyboardRemove
-
-
-from config import TOKEN , YanToken
+from aiogram.utils.exceptions import (MessageToEditNotFound, MessageCantBeEdited, MessageCantBeDeleted,
+                                      MessageToDeleteNotFound)
+from contextlib import suppress
+from config import TOKEN, YanToken
 from stateses import User_state, Game_state, Place_state, City_state, News_state, NewUser_state, NewGame_state
 import data_base
 import keyboards.city as kb_city
 
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 
 bot = Bot(token=TOKEN)
@@ -32,7 +35,8 @@ game_info = {}
 
 db = data_base.Data()
 
-async def btn_users(users,game_id, callback):
+
+async def btn_users(users, game_id, callback):
     users_id = []
     users_name = {}
     btns_users = {}
@@ -48,11 +52,11 @@ async def btn_users(users,game_id, callback):
     return [keyboard, users_id]
 
 
-async def btn_place(city_id,callback):
+async def btn_place(city_id, callback):
     plases = db.show_place_in_city(city_id)
     plases_id = []
     plases_name = {}
-    
+
     for i in (plases):
         plases_id.append(i[0])
         plases_name[i[0]] = i[1]
@@ -83,12 +87,13 @@ async def btn_gameplace(city_id, game_id):
 
 # _____START_____
 
+
 @dp.message_handler(commands=['start'])
 async def reg_message(message: types.Message):
-    print("Кто-то начал регистрацию")
+    logger.info(f"{message.from_user.id} начал регистрацию")
     user_id = message.from_user.id
-    user_info[user_id]=[user_id]
-    
+    user_info[user_id] = [user_id]
+
     info = db.show_user(message.from_user.id)
     if info == None:
 
@@ -100,7 +105,9 @@ async def reg_message(message: types.Message):
                                text="Вы новый пользователь!\nПоэтому давайте пройдём регистрацию\nДля начала подтвердите свой номер телефона",
                                reply_markup=keyboard)
     else:
+        msg = await bot.send_message(message.chat.id, "Загружаем фото...")
         y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
+        await bot.delete_message(message.chat.id, msg.message_id)
         await bot.send_photo(message.chat.id, photo=open(
             f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"Рады видеть вас снова  `{info[1]}`", parse_mode='Markdown')
         os.remove(f'./img/avatar/{user_id}.jpg')
@@ -110,7 +117,7 @@ async def reg_message(message: types.Message):
 @dp.message_handler(content_types=['contact'], state='*')
 async def photo_step(message: types.Message, state: FSMContext):
     user_info[message.from_user.id].append(message.contact.phone_number)
-     
+
     await bot.send_message(message.chat.id, 'Теперь отправьте фотографию для вашего профиля', reply_markup=types.ReplyKeyboardRemove())
     await User_state.photo.set()
 
@@ -120,11 +127,12 @@ async def name_step(message: types.Message, state: FSMContext):
     async with state.proxy() as user:
         user['photo'] = message.photo[-1]  # .file_id
     user_info[message.from_user.id].append(user['photo'])
-    
+
     await user['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
     if y.exists(f'/avatar/{message.from_user.id}.jpg'):
         y.remove(f'/avatar/{message.from_user.id}.jpg')
-    y.upload(f'./img/avatar/{message.from_user.id}.jpg',f'/avatar/{message.from_user.id}.jpg')
+    y.upload(f'./img/avatar/{message.from_user.id}.jpg',
+             f'/avatar/{message.from_user.id}.jpg')
     os.remove(f'./img/avatar/{message.from_user.id}.jpg')
     await bot.send_message(message.chat.id, 'Теперь введите свой никнейм')
     await User_state.name.set()
@@ -135,7 +143,7 @@ async def photo_step(message: types.Message, state: FSMContext):
     async with state.proxy() as user:
         user['name'] = message.text
     user_info[message.from_user.id].append(user['name'])
-    
+
     await state.finish()
     keybd = (await kb_city.keyboard_city('btn_reg'))[0]
     await bot.send_message(message.chat.id, 'Осталось только выбрать ваш город😉',
@@ -146,7 +154,7 @@ async def photo_step(message: types.Message, state: FSMContext):
 async def callback_citys(call: CallbackQuery):
     city_id = call.data.split('_')[2]
     user_info[call.from_user.id].append(city_id)
-    
+
     city_name = db.show_city_info(city_id)
 
     await bot.edit_message_text(f'Вы выбрали {city_name[0][0]}', call.from_user.id, call.message.message_id, reply_markup=None)
@@ -155,6 +163,7 @@ async def callback_citys(call: CallbackQuery):
                            "Регистрация прошла успешно\nРады видеть вас!")
 
 # _______________
+
 
 @dp.message_handler(commands=['about'])
 async def about(message: types.Message):
@@ -165,18 +174,18 @@ async def about(message: types.Message):
 @dp.message_handler(commands=['rules'])
 async def rule(message: types.Message):
     await bot.send_message(message.chat.id, "Наши правила:\n")
-
+    # правила
 
 
 @dp.message_handler(commands=['help'])
 async def help_message(message: types.Message):
     info = db.show_user(message.from_user.id)
     if info == None:
-        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
-        city  = db.show_user(message.from_user.id)[3]
-        if city==0:
-            await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+        city = db.show_user(message.from_user.id)[3]
+        if city == 0:
+            await bot.send_message(message.chat.id, "Для начала выберите город в настройках профиля")
         else:
             admin = db.find_admin(city)
             if(admin is None):
@@ -184,38 +193,40 @@ async def help_message(message: types.Message):
                 mention = []
                 mention.append(f"[{main[2]}](tg://user?id={main[0]})")
                 await bot.send_message(message.chat.id, "Администратора в вашем городе пока не назвачили, по всем вопросам пишите главному:\n" +
-                                        '\n'.join(mention), parse_mode="Markdown")
+                                       '\n'.join(mention), parse_mode="Markdown")
             else:
                 mention = []
                 mention.append(f"[{admin[2]}](tg://user?id={admin[0]})")
                 await bot.send_message(message.chat.id, "По всем вопросам пишите админу города:\n" +
-                                        '\n'.join(mention), parse_mode="Markdown")
+                                       '\n'.join(mention), parse_mode="Markdown")
 # _______________
 # _____CORPORATE____
+
+
 @dp.message_handler(commands=['corporate'])
 async def corporate_message(message: types.Message):
-    print("Кто-то смотрит заказ корпоративной игры")
+    logger.info(f"{message.from_user.id} смотрит корпорат")
     keyboad_corp = types.InlineKeyboardMarkup()
     btn_yes = types.InlineKeyboardButton(
-                text='Да', callback_data='yes')
+        text='Да', callback_data='yes')
     btn_no = types.InlineKeyboardButton(
-                text='Нет', callback_data='no')
+        text='Нет', callback_data='no')
     keyboad_corp.add(btn_yes)
     keyboad_corp.add(btn_no)
     await bot.send_message(
-                message.chat.id, 'Вы хотите заказать корпоративную игру?', reply_markup=keyboad_corp)
+        message.chat.id, 'Вы хотите заказать корпоративную игру?', reply_markup=keyboad_corp)
 
 
 @dp.callback_query_handler(text_contains='yes')
 async def callback_yes(call: CallbackQuery):
     info = db.show_user(call.from_user.id)
     if info == None:
-        await bot.send_message(call.message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        await bot.send_message(call.message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
         await bot.edit_message_text("С вами скоро свяжется админ вашего города", call.from_user.id, call.message.message_id)
-        user  = db.show_user(call.from_user.id)
-        if user[3]==0:
-            await bot.send_message(call.message.chat.id,"Для начала выберите город в настройках профиля")
+        user = db.show_user(call.from_user.id)
+        if user[3] == 0:
+            await bot.send_message(call.message.chat.id, "Для начала выберите город в настройках профиля")
         else:
             admin = db.find_admin(user[3])
 
@@ -223,11 +234,9 @@ async def callback_yes(call: CallbackQuery):
             mention = []
             mention.append(f"[{user[1]}](tg://user?id={user[0]})")
             await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
-                                        '\n'.join(mention), parse_mode="Markdown")
+                                   '\n'.join(mention), parse_mode="Markdown")
             await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
-                                        '\n'.join(mention), parse_mode="Markdown")
-        
-
+                                   '\n'.join(mention), parse_mode="Markdown")
 
 
 @dp.callback_query_handler(text_contains='no')
@@ -236,15 +245,19 @@ async def callback_no(call: CallbackQuery):
 
 # _______________
 # _____Afisha_____
+
+
 @dp.message_handler(commands=['afisha'])
 async def show_game(message: types.Message):
     info = db.show_user(message.from_user.id)
+
+    logger.info(f" {message.from_user.id} смотрит игры")
     if info == None:
-        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
         city_id = db.show_user(message.from_user.id)[3]
-        if city_id==0:
-            await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+        if city_id == 0:
+            await bot.send_message(message.chat.id, "Для начала выберите город в настройках профиля")
         else:
             result_game = db.show_game(city_id)
             result_pre_reg = db.show_prereg_game(message.from_user.id)
@@ -259,39 +272,32 @@ async def show_game(message: types.Message):
 
                 for i in result_pre_reg:
                     game_id.append(i[0])
-
+                msg = await bot.send_message(message.chat.id, "Загружаем игры..")
                 for i in result_game:
+
                     confirm_keyboard = None
                     time = i[3].strftime("%H:%M")
                     date = i[2].strftime("%d.%m.%Y")
                     day = int(date.split(".")[0])
                     month = int(date.split(".")[1])
                     year = int(date.split(".")[2])
-                    hour = int(time.split(":")[0])+4
-                    if hour >= 23:
-                        hour = hour - 23
-                        day = day + 1
-                        if(day > 31):
-                            month= month + 1
-                            if(month>12):
-                                year= year + 1
-                    date_del = datetime.date(year,month,day).strftime("%d.%m.%Y")
-                    time_del = datetime.time(hour,int(time.split(":")[1]),00).strftime("%H:%M")
-                    print("Del time:"+time_del)
-                    print("Del date:"+date_del)
-                    print("Now:"+datetime.datetime.now().strftime("%H:%M"))
-                    print("Now:"+datetime.datetime.now().strftime("%d.%m.%Y"))
-                    print(datetime.datetime.now().strftime("%H:%M")>time_del and datetime.datetime.now().strftime("%d.%m.%Y")>=date_del)
-                    if (datetime.datetime.now().strftime("%H:%M")>time_del) and (datetime.datetime.now().strftime("%d.%m.%Y")>=date_del):
+                    hour = int(time.split(":")[0])
+                    minute = int(time.split(":")[1])
+                    date_del = datetime.datetime(
+                        year, month, day, hour, minute)+datetime.timedelta(hours=4)
+                    print(f"Дата удаления:{date_del}")
+                    print("Сейчас:", datetime.datetime.now())
+                    print(datetime.datetime.now() > date_del)
+                    if datetime.datetime.now() > date_del:
                         db.del_prereg(i[0])
                         db.del_game(i[0])
                         if y.exists(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg'):
-                            y.remove(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                            y.remove(
+                                f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
                             file_name = os.path.join(
-                            f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                                f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
                             os.remove(file_name)
-                        
-                        
+
                         if(len(db.show_game(city_id)) == 0):
                             await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
                     else:
@@ -310,7 +316,8 @@ async def show_game(message: types.Message):
                             if db.show_count_prereg_game(i[0])[0][0] is None:
                                 count_user = 0
                             else:
-                                count_user = db.show_count_prereg_game(i[0])[0][0]
+                                count_user = db.show_count_prereg_game(i[0])[
+                                    0][0]
                             place_left = i[4]-i[6]
                             confirm_keyboard = types.InlineKeyboardMarkup()
                             confirm_btn = types.InlineKeyboardButton(
@@ -328,10 +335,13 @@ async def show_game(message: types.Message):
                             confirm_keyboard.add(confirm_btn1)
                             confirm_keyboard.add(confirm_btn2)
                             confirm_keyboard.add(confirm_btn3)
-                        y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+
+                        y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg',
+                                   f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+
                         await bot.send_photo(message.chat.id, photo=open(
                             f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: `{i[1]}`\nДата проведения: `{date}`\nВремя: `{time}`\nЦена: `{i[5]}`\nПредоплата: `{i[8]}`\nОсталось мест: `{i[4]-i[6]}`\nУже идёт: `{i[6]}`\nПредварительно записались: `{count_user-i[6]}`", parse_mode='Markdown', reply_markup=confirm_keyboard)
-                    
+                await bot.delete_message(message.chat.id, msg.message_id)
 
 
 @dp.callback_query_handler(text_contains='who_goes')
@@ -352,43 +362,45 @@ async def callback_btn_who_goes(call: CallbackQuery):
 
 @ dp.callback_query_handler(text_contains='confirm')
 async def call_btn_confirm(call: CallbackQuery):
-    
+
     user_id = call.from_user.id
-    print(user_id, "Подал заявку на игру")
+    logger.info(f"{user_id} хочет подать заявку на игру")
     game_info = call.data.split("_")
     game_id = game_info[2]
-    count = int(game_info[1])
-    place_left = int(game_info[4])
-    print("pl:"+str(place_left))
-    print("cout:"+str(count))
-    if(place_left>=count):
-        city_id = db.show_user(call.from_user.id)[3]
-        prepay = game_info[3]
-
-        result_pre_reg = db.show_prereg_game(call.from_user.id)
-        if(len(result_pre_reg) == 0):
-            result_pre_reg.append([0, 0])
-        for i in result_pre_reg:
-            if(int(game_id) == int(i[0])):
-                await bot.edit_message_caption(chat_id=call.message.chat.id,
-                                            message_id=call.message.message_id, caption='Вы уже подали заявку на данную игру', reply_markup=None)
-                break
-            else:
-                admin = db.find_admin(city_id)
-
-                db.Insert_prereg_game(game_id, user_id, count)
-                await bot.edit_message_caption(chat_id=call.message.chat.id,
-                                            message_id=call.message.message_id, caption=f'Для записи на игру от вас необходима предоплата {prepay}р с человека.\nПеревод на карту Сбербанк по номеру телефона:{admin[1]}.\n В переводе укажите ваш ник\n В случае отказа от игры за 24 часа до игры, предоплата возвращается.', reply_markup=None)
-                admin_id = db.find_admin(city_id)[0]
-                user = db.show_user(user_id)
-                mention =[]
-                
-                mention.append(f"[{user[1]}](tg://user?id={user[0]})") 
-                await bot.send_message(admin_id, "Кто-то зарегистрировался на игру:\n" +
-                                '\n'.join(mention), parse_mode="Markdown")
-                break
+    check_game = db.show_game(game_id)
+    if len(check_game) == 0:
+        await bot.send_message(call.message.chat.id, "Эта игра уже прошла,вы можете записаться на новые, введя команду: /afisha")
     else:
-        await bot.send_message(call.message.chat.id,"Свободных мест на столько человек не осталось!")   
+        count = int(game_info[1])
+        place_left = int(game_info[4])
+        if(place_left >= count):
+            city_id = db.show_user(call.from_user.id)[3]
+            prepay = game_info[3]
+
+            result_pre_reg = db.show_prereg_game(call.from_user.id)
+            if(len(result_pre_reg) == 0):
+                result_pre_reg.append([0, 0])
+            for i in result_pre_reg:
+                if(int(game_id) == int(i[0])):
+                    await bot.edit_message_caption(chat_id=call.message.chat.id,
+                                                   message_id=call.message.message_id, caption='Вы уже подали заявку на данную игру', reply_markup=None)
+                    break
+                else:
+                    admin = db.find_admin(city_id)
+
+                    db.Insert_prereg_game(game_id, user_id, count)
+                    await bot.edit_message_caption(chat_id=call.message.chat.id,
+                                                   message_id=call.message.message_id, caption=f'Для записи на игру от вас необходима предоплата {prepay}р с человека.\nПеревод на карту Сбербанк по номеру телефона:{admin[1]}.\n В переводе укажите ваш ник\n В случае отказа от игры за 24 часа до игры, предоплата возвращается.', reply_markup=None)
+                    admin_id = db.find_admin(city_id)[0]
+                    user = db.show_user(user_id)
+                    mention = []
+
+                    mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+                    await bot.send_message(admin_id, "Кто-то зарегистрировался на игру:\n" +
+                                           '\n'.join(mention), parse_mode="Markdown")
+                    break
+        else:
+            await bot.send_message(call.message.chat.id, "Свободных мест на столько человек не осталось!")
 
 # ________________
 # _____ADMIN_____
@@ -444,11 +456,13 @@ async def callback_btn_rnews(call: CallbackQuery):
     news = call.data.split('_')[2]
     if(int(news) == 0):
         keyboad = types.InlineKeyboardMarkup()
-        btn_photo = types.InlineKeyboardButton(text='Новость с фото', callback_data='btn_rnews_1')
-        btn_text = types.InlineKeyboardButton(text='Новость без фото', callback_data='btn_rnews_2')
+        btn_photo = types.InlineKeyboardButton(
+            text='Новость с фото', callback_data='btn_rnews_1')
+        btn_text = types.InlineKeyboardButton(
+            text='Новость без фото', callback_data='btn_rnews_2')
         keyboad.add(btn_photo)
         keyboad.add(btn_text)
-        await bot.edit_message_text('Выберите тип новости',call.message.chat.id,call.message.message_id ,reply_markup=keyboad)
+        await bot.edit_message_text('Выберите тип новости', call.message.chat.id, call.message.message_id, reply_markup=keyboad)
     if(int(news) == 1):
         await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
         await News_state.reg_news_photo.set()
@@ -465,7 +479,7 @@ async def rnews_state(message: types.Message, state: FSMContext):
     await state.finish()
     for i in db.show_all_users(city_id):
         await bot.send_message(i[0], data['text'])
-    
+
 
 @dp.message_handler(state=News_state.reg_news_photo, content_types=['photo'])
 async def news_state(message: types.Message, state: FSMContext):
@@ -475,7 +489,7 @@ async def news_state(message: types.Message, state: FSMContext):
     city_id = db.show_user(message.from_user.id)[3]
     await state.finish()
     for i in db.show_all_users(city_id):
-        await bot.send_photo(i[0], photo= photo,caption=data['text'])
+        await bot.send_photo(i[0], photo=photo, caption=data['text'])
 
 
 @ dp.callback_query_handler(text_contains='btn_news')
@@ -484,11 +498,13 @@ async def callback_btn_news(call: CallbackQuery):
 
     if(int(news) == 0):
         keyboad = types.InlineKeyboardMarkup()
-        btn_photo = types.InlineKeyboardButton(text='Новость с фото', callback_data='btn_news_1')
-        btn_text = types.InlineKeyboardButton(text='Новость без', callback_data='btn_news_2')
+        btn_photo = types.InlineKeyboardButton(
+            text='Новость с фото', callback_data='btn_news_1')
+        btn_text = types.InlineKeyboardButton(
+            text='Новость без', callback_data='btn_news_2')
         keyboad.add(btn_photo)
         keyboad.add(btn_text)
-        await bot.edit_message_text('Выберите тип новости',call.message.chat.id,call.message.message_id ,reply_markup=keyboad)
+        await bot.edit_message_text('Выберите тип новости', call.message.chat.id, call.message.message_id, reply_markup=keyboad)
     if(int(news) == 1):
         await bot.edit_message_text("Какую новость разослать?", call.from_user.id, call.message.message_id)
         await News_state.all_news_photo.set()
@@ -505,6 +521,7 @@ async def rnews_state(message: types.Message, state: FSMContext):
     for i in db.show_all_users('city_id'):
         await bot.send_message(i[0], data['text'])
 
+
 @dp.message_handler(state=News_state.all_news_photo, content_types=['photo'])
 async def news_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
@@ -512,7 +529,7 @@ async def news_state(message: types.Message, state: FSMContext):
         photo = message.photo[-1].file_id
     await state.finish()
     for i in db.show_all_users('city_id'):
-        await bot.send_photo(i[0], photo= photo,caption=data['text'])
+        await bot.send_photo(i[0], photo=photo, caption=data['text'])
 
 # _____ADMIN/NEWS_____
 
@@ -551,7 +568,7 @@ async def callback_btn_allUser(call: CallbackQuery):
     if len(mention) == 0:
         await bot.send_message(call.message.chat.id, "Пока никого нет")
     else:
-        await bot.send_message(call.message.chat.id, "Список пользователей в вашем городе:\n" +'\n'.join(mention), parse_mode="Markdown")
+        await bot.send_message(call.message.chat.id, "Список пользователей в вашем городе:\n" + '\n'.join(mention), parse_mode="Markdown")
 
 
 @dp.callback_query_handler(text_contains='btn_cum')
@@ -578,37 +595,33 @@ async def callback_btn_cum(call: CallbackQuery):
 async def callback_btn_cgame(call: CallbackQuery):
     game_id = call.data.split('_')[2]
     users = db.show_who_goes(game_id, 1)
-    if(len(users)==0):
+    if(len(users) == 0):
         await bot.edit_message_text('Все отмечены!', call.from_user.id, call.message.message_id, reply_markup=None)
     else:
-        user = (await btn_users(users,game_id,"btn_сusers"))[0]
+        user = (await btn_users(users, game_id, "btn_сusers"))[0]
         await bot.edit_message_text('Кто пришел на игру?', call.from_user.id, call.message.message_id, reply_markup=user)
-    
-
-
-
 
 
 @dp.callback_query_handler(text_contains='btn_сusers')
 async def callback_btn_сusers(call: CallbackQuery):
     user_id = call.data.split('_')[2]
     game_id = call.data.split('_')[3]
-    db.update_count(user_id,game_id)
+    db.update_count(user_id, game_id)
     user = db.show_user(user_id)
     count = int(user[5])
 
-    if (count == 25) or (count == 28) :
-        mention =[]
-        mention.append(f"[{user[1]}](tg://user?id={user[0]})") 
+    if (count == 25) or (count == 28):
+        mention = []
+        mention.append(f"[{user[1]}](tg://user?id={user[0]})")
         city_id = db.show_user(call.from_user.id)[3]
         admin = db.find_admin(city_id)[0]
-        await bot.send_message(admin,f"Этот пользователь сыграл {count} раз(а) :\n" +
+        await bot.send_message(admin, f"Этот пользователь сыграл {count} раз(а) :\n" +
                                '\n'.join(mention), parse_mode="Markdown")
     users = db.show_who_goes(game_id, 1)
-    if(len(users)==0):
+    if(len(users) == 0):
         await bot.edit_message_text('Все, кто хотел, пришли!', call.from_user.id, call.message.message_id, reply_markup=None)
     else:
-        user = (await btn_users(users,game_id,"btn_сusers"))[0]
+        user = (await btn_users(users, game_id, "btn_сusers"))[0]
         await bot.edit_message_text('Кто пришел на игру?', call.from_user.id, call.message.message_id, reply_markup=user)
 
 
@@ -699,24 +712,24 @@ async def callback_adm_del_city(call: CallbackQuery):
     keybd = (await kb_city.keyboard_city('btn_dcity'))[0]
     await bot.edit_message_text("Какой город хотите удалить?", call.from_user.id, call.message.message_id, reply_markup=keybd)
 
+
 @ dp.callback_query_handler(text_contains='btn_dcity')
 async def callback_btn_dcity(call: CallbackQuery):
     city_id = call.data.split("_")[2]
     plases = db.show_place_in_city(city_id)
     if(len(plases) == 0):
-        await bot.send_message(call.message.chat.id,'Город удалён', reply_markup=None)
+        await bot.send_message(call.message.chat.id, 'Город удалён', reply_markup=None)
         users = db.show_all_users(city_id)
         for i in users:
-            print("В цикле юзеров")
-            if(i[2]==2):
-                db.Change_city(0,i[0],2)
+            if(i[2] == 2):
+                db.Change_city(0, i[0], 2)
             else:
-                db.Change_city(0,i[0],0)
-            await bot.send_message(i[0],"В вашем городе временно не будут проводиться игры, вы можете изменить город в настройках профиля")
-        
+                db.Change_city(0, i[0], 0)
+            await bot.send_message(i[0], "В вашем городе временно не будут проводиться игры, вы можете изменить город в настройках профиля")
+
         db.del_city(city_id)
     else:
-        place_id=[]
+        place_id = []
         for i in plases:
             place_id.append(i[0])
         for i in place_id:
@@ -736,18 +749,18 @@ async def callback_btn_dcity(call: CallbackQuery):
                     file_name = os.path.join(
                         "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
                     os.remove(file_name)
-                    y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+                    y.remove(
+                        f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
                 db.del_place(i)
         users = db.show_all_users(city_id)
         for i in users:
-            print("В цикле юзеров")
-            if(i[2]==2):
-                db.Change_city(0,i[0],2)
+            if(i[2] == 2):
+                db.Change_city(0, i[0], 2)
             else:
-                db.Change_city(0,i[0],0)
-            await bot.send_message(i[0],"В вашем городе временно не будут проводиться игры, вы можете изменить город в настройках профиля")
+                db.Change_city(0, i[0], 0)
+            await bot.send_message(i[0], "В вашем городе временно не будут проводиться игры, вы можете изменить город в настройках профиля")
         db.del_city(city_id)
-        await bot.edit_message_text('Город удалён',call.message.chat.id, call.message.message_id, reply_markup=None)
+        await bot.edit_message_text('Город удалён', call.message.chat.id, call.message.message_id, reply_markup=None)
 
 
 @ dp.callback_query_handler(text_contains='adm_del_place')
@@ -759,7 +772,7 @@ async def callback_adm_del_place(call: CallbackQuery):
 @ dp.callback_query_handler(text_contains='btn_dplace')
 async def callback_btn_dplace(call: CallbackQuery):
     city_id = call.data.split("_")[2]
-    places = (await btn_place(city_id,'btn_delplace'))[0]
+    places = (await btn_place(city_id, 'btn_delplace'))[0]
     await bot.edit_message_text('Какое заведение удалить?', call.from_user.id, call.message.message_id, reply_markup=places)
 
 
@@ -786,7 +799,6 @@ async def callback_btn_dplace(call: CallbackQuery):
 
         db.del_place(place_id)
     await bot.edit_message_text('Заведение удалено', call.from_user.id, call.message.message_id, reply_markup=None)
-    
 
 
 @ dp.callback_query_handler(text_contains='adm_add_place')
@@ -798,7 +810,7 @@ async def callback_adm_add_place(call: CallbackQuery):
 @ dp.callback_query_handler(text_contains='btn_aplace')
 async def callback_btn_aplace(call: CallbackQuery):
     place_info['city_id'] = call.data.split("_")[2]
-    await bot.edit_message_text("Введите название заведения",call.message.chat.id,call.message.message_id)
+    await bot.edit_message_text("Введите название заведения", call.message.chat.id, call.message.message_id)
     await Place_state.name.set()
 
 
@@ -856,8 +868,8 @@ async def callback_admin_btn_game(call: CallbackQuery):  # админ меню
     btn_pay_game = types.InlineKeyboardButton(
         text='Подтверждение оплаты игры', callback_data='btn_pay_game')
     btn_cume = types.InlineKeyboardButton(
-            text="Отметить пришедших на игру", callback_data="btn_cum")
-   
+        text="Отметить пришедших на игру", callback_data="btn_cum")
+
     keyboard.add(btn_create_game)
     keyboard.add(btn_edit_game)
     keyboard.add(btn_pay_game)
@@ -870,29 +882,29 @@ async def callback_admin_btn_game(call: CallbackQuery):  # админ меню
 
 @dp.callback_query_handler(text_contains='btn_create_game')
 async def callback_admin_btn_creategame(call: CallbackQuery):
-    admin=db.show_user(call.from_user.id)
-    if admin[4]==2:
+    admin = db.show_user(call.from_user.id)
+    if admin[4] == 2:
         keybd = (await kb_city.keyboard_city('btn_cplace'))[0]
-        await bot.edit_message_text("В каком городе?",call.from_user.id, call.message.message_id, reply_markup=keybd)
+        await bot.edit_message_text("В каком городе?", call.from_user.id, call.message.message_id, reply_markup=keybd)
     else:
         city_id = db.show_user(call.from_user.id)[3]
-        places = (await btn_place(city_id,'btn_place'))[0]
+        places = (await btn_place(city_id, 'btn_place'))[0]
         await bot.edit_message_text('В каком Заведении создать игру?', call.from_user.id, call.message.message_id, reply_markup=places)
+
 
 @dp.callback_query_handler(text_contains='btn_cplace')
 async def callback_admin_btn_creategame(call: CallbackQuery):
     city_id = call.data.split("_")[2]
-    places = (await btn_place(city_id,'btn_place'))[0]
+    places = (await btn_place(city_id, 'btn_place'))[0]
     await bot.edit_message_text('В каком Заведении создать игру?', call.from_user.id, call.message.message_id, reply_markup=places)
-
 
 
 @ dp.callback_query_handler(text_contains='btn_place')
 async def call_btn_place_i(call: CallbackQuery):
     city_id = call.data.split("_")[3]
     game_info[call.from_user.id] = [city_id]
-    game_info[call.from_user.id].append( call.data.split("_")[2])
-    await bot.edit_message_text("Введите дату игры через '-', не раньше сегодняшнего дня\n Пример: 01-01-2022",call.message.chat.id,call.message.message_id)
+    game_info[call.from_user.id].append(call.data.split("_")[2])
+    await bot.edit_message_text("Введите дату игры через '-', не раньше сегодняшнего дня\n Пример: 01-01-2022", call.message.chat.id, call.message.message_id)
     await Game_state.date.set()
 
 
@@ -909,8 +921,8 @@ async def take_date(message: types.Message, state: FSMContext):
                                text="Введите правильно дату, не раньше сегодняшнего дня\nПример  `01-01-2022`", parse_mode='Markdown')
         await Game_state.date.set()
     else:
-        game_info[message.from_user.id].append(data[2]+'-' + \
-            data[1]+'-'+data[0])
+        game_info[message.from_user.id].append(data[2]+'-' +
+                                               data[1]+'-'+data[0])
         await bot.send_message(message.chat.id, "Введите время проведения игры через :")
         await Game_state.time.set()
 
@@ -921,7 +933,7 @@ async def take_time(message: types.Message, state: FSMContext):
         data['text'] = message.text
         time = data['text']
     time = re.split(";|,|\n|-|:|\.", time)
-   
+
     if (int(time[0]) < 0 or int(time[0]) >= 23) or int(time[1]) >= 59:
         await bot.send_message(message.chat.id, "Введите правильно время\nПример  `22:22`", parse_mode='Markdown')
         await Game_state.time.set()
@@ -938,19 +950,23 @@ async def name_step(message: types.Message, state: FSMContext):
         game['photo'] = message.photo[-1]  # .file_id
     await game['photo'].download(f'./img/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
     if y.exists(f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg'):
-        y.remove(f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
-    y.upload(f'./img/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg',f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
+        y.remove(
+            f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
+    y.upload(f'./img/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg',
+             f'/afisha/{game_info[message.from_user.id][0]}_{game_info[message.from_user.id][1]}_{game_info[message.from_user.id][2]}.jpg')
     db.Insert_game(game_info[message.from_user.id])
     await bot.send_message(message.chat.id, "Игра создана")
     users = db.show_all_users(game_info[message.from_user.id][0])
     for i in users:
-        place = db.show_info_place(game_info[message.from_user.id][1])    
-        y.download(f'/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg', f'img/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg')
+        place = db.show_info_place(game_info[message.from_user.id][1])
+
+        y.download(f'/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg',
+                   f'img/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg')
         date = re.split(";|,|\n|-|:|\.", game_info[message.from_user.id][2])
         date = date[2]+'-' + \
             date[1]+'-'+date[0]
         await bot.send_photo(i[0], photo=open(
-                        f'img/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg', 'rb'), caption=f"В вашем городе новая игра,\nУспей записаться!\nЗаведение: `{place[1]}`\nДата проведения: `{date}`\nВремя: `{game_info[message.from_user.id][3]}`\nЦена: `{place[2]}`\nПредоплата: `{place[5]}`\nКол-во мест: `{place[3]}`\nДля записи на игру нажми /afisha", parse_mode='Markdown')
+            f'img/afisha/{str(game_info[message.from_user.id][0])+"_"+str(game_info[message.from_user.id][1])+"_"+str(game_info[message.from_user.id][2])}.jpg', 'rb'), caption=f"В вашем городе новая игра,\nУспей записаться!\nЗаведение: `{place[1]}`\nДата проведения: `{date}`\nВремя: `{game_info[message.from_user.id][3]}`\nЦена: `{place[2]}`\nПредоплата: `{place[5]}`\nКол-во мест: `{place[3]}`\nДля записи на игру нажми /afisha", parse_mode='Markdown')
     del game_info[message.from_user.id]
     await state.finish()
 
@@ -962,12 +978,14 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
     city_id = db.show_user(call.from_user.id)[3]
     result_game = db.show_game(city_id)
     if(len(result_game) == 0):
-        #await bot.send_message(call.message.chat.id, 'Игр пока нет')
+        # await bot.send_message(call.message.chat.id, 'Игр пока нет')
         await bot.edit_message_text('Игр пока нет', call.from_user.id, call.message.message_id, reply_markup=None)
     game_id = []
     await bot.delete_message(chat_id=call.message.chat.id,
-                                   message_id=call.message.message_id)
+                             message_id=call.message.message_id)
+    msg = await bot.send_message(call.message.chat.id, "Загружаем игры")
     for i in result_game:
+
         game_id.append(i[0])
         times = i[3].strftime("%H:%M")
         date = i[2].strftime("%d.%m.%Y")
@@ -975,10 +993,11 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
         btn_edit_game = types.InlineKeyboardButton(
             text="Настроить эту игру", callback_data=f"btn_edit_{i[0]}")
         keyboard.add(btn_edit_game)
-        y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg',f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+        y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg',
+                   f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
         await bot.send_photo(call.message.chat.id, photo=open(
             f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: {i[1]}\nДата проведения: {date}\nВремя: {times}\nЦена: `{i[5]}`\nОсталось мест: {i[4]-i[6]}\nУже идёт: {i[6]}", parse_mode='Markdown', reply_markup=keyboard)
-        
+    await bot.delete_message(call.message.chat.id, msg.message_id)
 
 
 @dp.callback_query_handler(text_contains='btn_edit')
@@ -1003,11 +1022,11 @@ async def callback_admin_btn_this_game(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains="btn_ed_time")
 async def callback_admin_btn_edit_time(call: CallbackQuery):
-    game_id = call.data.split("_")[3]#game_id
-    game_info[call.from_user.id] =  [game_id]
-    
+    game_id = call.data.split("_")[3]  # game_id
+    game_info[call.from_user.id] = [game_id]
+
     await bot.delete_message(chat_id=call.message.chat.id,
-                                   message_id=call.message.message_id)
+                             message_id=call.message.message_id)
     await bot.send_message(call.message.chat.id, "Введите время")
     await NewGame_state.time.set()
 
@@ -1017,10 +1036,9 @@ async def new_take_time(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
         time = data['text']
-    
-    time = re.split(";|,|\n|-|:|\.",time)
-    
-    
+
+    time = re.split(";|,|\n|-|:|\.", time)
+
     if (int(time[0]) < 0 or int(time[0]) >= 23) or int(time[1]) >= 59:
 
         await bot.send_message(message.chat.id, "Введите правильно время\nПример  `22:22`", parse_mode='Markdown')
@@ -1038,9 +1056,9 @@ async def new_take_time(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text_contains='btn_ed_date')
 async def callback_admin_btn_edit_date(call: CallbackQuery):
     game_id = call.data.split("_")[3]
-    game_info[call.from_user.id] =  [game_id]
+    game_info[call.from_user.id] = [game_id]
     await bot.delete_message(chat_id=call.message.chat.id,
-                                   message_id=call.message.message_id)
+                             message_id=call.message.message_id)
     await bot.send_message(
         call.message.chat.id, "Введите дату в формате `день-месяц-год`", parse_mode='Markdown')
     await NewGame_state.date.set()
@@ -1060,8 +1078,6 @@ async def new_take_date(message: types.Message, state: FSMContext):
 
     data = re.split(";|,|\n|-|:|\.", data)
     date = datetime.date(int(data[2]), int(data[1]), int(data[0]))
-    print(date)
-    print(datetime.date.today())
     if (int(data[0]) < 0 or int(data[0]) > 31) or (int(data[1]) > 12 or int(data[1]) <= 0) or date < datetime.date.today():
         await bot.send_message(chat_id=message.from_user.id,
                                text="Введите правильно дату, не раньше сегодняшней\nПример  `01-01-2022`", parse_mode='Markdown')
@@ -1070,18 +1086,21 @@ async def new_take_date(message: types.Message, state: FSMContext):
     else:
         dates = data[2]+'-' + \
             data[1]+'-'+data[0]
-        
-        y.download(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg',f"./img/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
+
+        y.download(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg',
+                   f"./img/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
         file_oldname = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
         file_newname_newfile = os.path.join(
             "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{dates}.jpg")
         os.rename(file_oldname, file_newname_newfile)
         y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
-        y.upload(f"./img/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg",f'/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg')
-        
+        y.upload(f"./img/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg",
+                 f'/afisha/{old_info[0]}_{old_info[1]}_{dates}.jpg')
+
         await state.finish()
-        db.change_game(dates, 'date_of_games', game_info[message.from_user.id][0])
+        db.change_game(dates, 'date_of_games',
+                       game_info[message.from_user.id][0])
         await bot.send_message(message.chat.id, "Дата изменена")
         del game_info[message.from_user.id]
         await state.finish()
@@ -1092,9 +1111,9 @@ async def callback_admin_btn_edit_place(call: CallbackQuery):
     game_id = call.data.split("_")[3]
     city_id = db.show_info_game(game_id)[0][0]
     await bot.delete_message(chat_id=call.message.chat.id,
-                                   message_id=call.message.message_id)
+                             message_id=call.message.message_id)
     keybd = (await btn_gameplace(city_id, game_id))[0]
-    await bot.send_message(call.message.chat.id,"Выберите место", reply_markup=keybd)
+    await bot.send_message(call.message.chat.id, "Выберите место", reply_markup=keybd)
 
 
 @ dp.callback_query_handler(text_contains='btn_gplace')
@@ -1106,14 +1125,16 @@ async def callback_admin_editplace(call: CallbackQuery):
     old_info.append(info[0][0])
     old_info.append(info[0][1])
     old_info.append(info[0][2])
-    y.download(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg',f"./img/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
+    y.download(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg',
+               f"./img/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
     file_oldname = os.path.join(
         "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
     file_newname_newfile = os.path.join(
         "./img/afisha/", f"{old_info[0]}_{place_id}_{old_info[2]}.jpg")
     os.rename(file_oldname, file_newname_newfile)
     y.remove(f"/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
-    y.upload(f"./img/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg",f'/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg')
+    y.upload(f"./img/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg",
+             f'/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg')
     db.change_game(place_id, 'place_id', game_id)
     await bot.send_message(call.message.chat.id, "Место изменено")
 
@@ -1149,8 +1170,8 @@ async def call_btn_pay_game(call: CallbackQuery):
     btns_games = {}
     games_date = {}
     games_id = []
-    if(len(games)==0):
-        bot.send_message(call.message.chat.id,"Игр пока нет")
+    if(len(games) == 0):
+        bot.send_message(call.message.chat.id, "Игр пока нет")
     for i in (games):
         games_id.append(i[0])
         games_date[i[0]] = i[2].strftime('%d.%m.%Y')
@@ -1167,12 +1188,12 @@ async def call_btn_pay_game(call: CallbackQuery):
 async def call_btn_btn_pgame(call: CallbackQuery):
     game_id = call.data.split('_')[2]
     users = db.show_who_goes(game_id, 0)
-    if(len(users)==0):
+    if(len(users) == 0):
         await bot.edit_message_text('Больше никто не записался!', call.from_user.id, call.message.message_id, reply_markup=None)
     else:
-        user = (await btn_users(users,game_id,"btn_gusers"))[0]
+        user = (await btn_users(users, game_id, "btn_gusers"))[0]
         await bot.edit_message_text("Выберете человека который оплатил", call.from_user.id, call.message.message_id,
-                                reply_markup=user)
+                                    reply_markup=user)
 
 
 @ dp.callback_query_handler(text_contains='btn_gusers')
@@ -1181,13 +1202,13 @@ async def call_btn_btn_gusers(call: CallbackQuery):
     game_id = call.data.split('_')[3]
     db.update_prepayment(user_id, game_id)
     users = db.show_who_goes(game_id, 0)
-    if(len(users)==0):
+    if(len(users) == 0):
         await bot.edit_message_text('Больше никто не записался!', call.from_user.id, call.message.message_id, reply_markup=None)
     else:
-        user = (await btn_users(users,game_id,"btn_gusers"))[0]
+        user = (await btn_users(users, game_id, "btn_gusers"))[0]
         await bot.edit_message_text("Выберете человека который оплатил", call.from_user.id, call.message.message_id,
-                                reply_markup=user)
-    await bot.send_message(user_id,"Оплата подтверждена")
+                                    reply_markup=user)
+    await bot.send_message(user_id, "Оплата подтверждена")
 # _____ADMIN/GAME_____
 # _____ADMIN________
 
@@ -1198,7 +1219,7 @@ async def call_btn_btn_gusers(call: CallbackQuery):
 async def show_profile(message: types.Message):
     info = db.show_user(message.from_user.id)
     if info == None:
-        await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+        await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         btn_edit_profile = types.KeyboardButton('Редактировать профиль✏️')
@@ -1213,53 +1234,58 @@ async def edit_profile(message: types.Message):
     info = db.show_user(message.from_user.id)
     if message.text == 'Показать профиль🖼':
         if info == None:
-            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+            await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
         else:
             user_id = message.from_user.id
-            print(user_id,"Смотрит профиль")
+            logger.info(f"{user_id} смотрит профиль")
             info = db.show_user(user_id)
-            if info[3]==0:
-                await bot.send_message(message.chat.id,"Для начала выберите город в настройках профиля")
+            if info[3] == 0:
+                await bot.send_message(message.chat.id, "Для начала выберите город в настройках профиля")
             else:
+                msg = await bot.send_message(message.chat.id, "Подгружаем ваш профиль...")
                 result = db.search_city(info[3])
-                y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
+                y.download(f'/avatar/{user_id}.jpg',
+                           f'./img/avatar/{user_id}.jpg')
+                await bot.delete_message(message.chat.id, msg.message_id)
                 await bot.send_photo(message.chat.id, photo=open(
                     f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
                 os.remove(f'./img/avatar/{user_id}.jpg')
     if message.text == 'Редактировать профиль✏️':
         if info == None:
-            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+            await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
         else:
-            print(message.from_user.id,"Хочет отредактировать профиль")
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+            logger.info(
+                f"{message.from_user.id} хочет отредактировать профиль")
+
+            markup = types.ReplyKeyboardMarkup(
+                resize_keyboard=True, row_width=2)
             btn_edit_name = types.KeyboardButton('Изменить имя(ник) ✏️')
             btn_edit_city = types.KeyboardButton('Изменить город 🏙')
             btn_edit_avatar = types.KeyboardButton('Изменить фото профиля👨')
             btn_back = types.KeyboardButton('Выйти из меню 🔚')
-            markup.add(btn_edit_name, btn_edit_city, btn_edit_avatar,btn_back)
+            markup.add(btn_edit_name, btn_edit_city, btn_edit_avatar, btn_back)
             await bot.send_message(
                 message.chat.id, "Давайте изменим ваш профиль 😉", reply_markup=markup)
     if message.text == 'Выйти из меню 🔚':
-        print("Отмена редактирования")
+        logger.info(f"{message.from_user.id} вышел из меню профиля")
         markup = types.ReplyKeyboardRemove()
         await bot.send_message(
             message.chat.id, "Надеюсь вы точно настроили профиль 😉", reply_markup=markup)
 
     if message.text == 'Изменить имя(ник) ✏️':
         if info == None:
-            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+            await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
         else:
-            print(message.from_user.id, "Меняет имя")
+
             markup = types.ReplyKeyboardRemove()
             await bot.send_message(message.chat.id, "Введите новое *имя(ник)*",
-                                parse_mode='markdown', reply_markup=markup)
+                                   parse_mode='markdown', reply_markup=markup)
             await NewUser_state.name.set()
 
     if message.text == 'Изменить фото профиля👨':
         if info == None:
-            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+            await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
         else:
-            print(message.from_user.id, "Меняет фото")
             user_id = message.from_user.id
             markup = types.ReplyKeyboardRemove()
             await bot.send_message(
@@ -1268,23 +1294,23 @@ async def edit_profile(message: types.Message):
 
     if message.text == 'Изменить город 🏙':
         if info == None:
-            await bot.send_message(message.chat.id,"Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
+            await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
         else:
-            print(message.from_user.id, "Меняет город")
+
             await bot.send_message(message.chat.id, "Хорошо подгружаем города",
-                                parse_mode='markdown', reply_markup=types.ReplyKeyboardRemove())
+                                   parse_mode='markdown', reply_markup=types.ReplyKeyboardRemove())
             time.sleep(1)
             await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id+1)
             keybd = (await kb_city.keyboard_city('btn_changecity'))[0]
             await bot.send_message(message.chat.id, "Выберете новый *город*",
-                                parse_mode='markdown', reply_markup=keybd)
+                                   parse_mode='markdown', reply_markup=keybd)
 
 
 @dp.message_handler(state=NewUser_state.name)
 async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    
+    logger.info(f"{message.from_user.id} меняет ник на {data['text']}")
     db.Change_nickName(message.from_user.id, data['text'])
     await state.finish()
     await bot.send_message(message.chat.id, "Имя пользователя изменено")
@@ -1294,12 +1320,14 @@ async def take_date(message: types.Message, state: FSMContext):
 async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['photo'] = message.photo[-1]
-    
+
     await data['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
     if y.exists(f'/avatar/{message.from_user.id}.jpg'):
         y.remove(f'/avatar/{message.from_user.id}.jpg')
-    y.upload(f'./img/avatar/{message.from_user.id}.jpg',f'/avatar/{message.from_user.id}.jpg')
+    y.upload(f'./img/avatar/{message.from_user.id}.jpg',
+             f'/avatar/{message.from_user.id}.jpg')
     os.remove(f'./img/avatar/{message.from_user.id}.jpg')
+    logger.info(f"{message.from_user.id} поменял фото")
     await bot.send_message(message.chat.id, "Фотография изменена")
     await state.finish()
 
@@ -1308,7 +1336,7 @@ async def take_date(message: types.Message, state: FSMContext):
 async def change_citys(call: CallbackQuery):
     users_id = call.from_user.id
     city_id = call.data.split("_")[2]
-
+    logger.info(f"{users_id} меняет город на city_id:{city_id}")
     await bot.edit_message_text(chat_id=call.message.chat.id,
                                 message_id=call.message.message_id, text=f'Город изменен')
     role = db.show_user(users_id)[4]
@@ -1318,7 +1346,6 @@ async def change_citys(call: CallbackQuery):
         db.Change_city(city_id, users_id, 2)
 
 # _____PROFILE_____
-
 
 
 if __name__ == '__main__':
