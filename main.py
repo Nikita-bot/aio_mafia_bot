@@ -360,8 +360,10 @@ async def callback_btn_who_goes(call: CallbackQuery):
     mention = []
     date = game_info[3]
     users = db.show_who_goes(game_info[2], 1)
+    c = 1
     for i in users:
-        mention.append(f"{i.index(i[0])+1}. {i[0]}")
+        mention.append(f"{c}. {i[0]}")
+        c+=1
     if len(mention) == 0:
         await bot.send_message(
             call.message.chat.id, "Пока никто не регистрировался\nНо ты можешь стать первым(ой)!")
