@@ -99,6 +99,7 @@ async def reg_message(message: types.Message):
     info = db.show_user(message.from_user.id)
     if info == None:
         logger.info(f"{message.from_user.id} начал регистрацию")
+        logger.info(f"{message.from_user.id} на этапе подтверждения номера")
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,)
         button_phone = types.KeyboardButton(
             text="Подтвердить номер📲", request_contact=True)
@@ -119,7 +120,7 @@ async def reg_message(message: types.Message):
 
 @dp.message_handler(content_types=['contact'], state='*')
 async def photo_step(message: types.Message, state: FSMContext):
-    logger.info(f"{message.from_user.id} на этапе подтверждения номера")
+    logger.info(f"{message.from_user.id} выбирает фото")
     user_info[message.from_user.id].append(message.contact.phone_number)
 
     await bot.send_message(message.chat.id, 'Теперь отправьте фотографию для вашего профиля', reply_markup=types.ReplyKeyboardRemove())
@@ -128,7 +129,7 @@ async def photo_step(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=User_state.photo, content_types=['photo'])
 async def name_step(message: types.Message, state: FSMContext):
-    logger.info(f"{message.from_user.id} выбирает фото")
+    logger.info(f"{message.from_user.id} придумывает никнейм")
     async with state.proxy() as user:
         user['photo'] = message.photo[-1]  # .file_id
     user_info[message.from_user.id].append(user['photo'])
@@ -145,7 +146,7 @@ async def name_step(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=User_state.name)
 async def photo_step(message: types.Message, state: FSMContext):
-    logger.info(f"{message.from_user.id} придумывает никнейм")
+    logger.info(f"{message.from_user.id} выбирает город")
     async with state.proxy() as user:
         user['name'] = message.text
     user_info[message.from_user.id].append(user['name'])
@@ -158,7 +159,7 @@ async def photo_step(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text_contains='btn_reg')
 async def callback_citys(call: CallbackQuery):
-    logger.info(f"{call.from_user.id} выбирает город")
+    
     city_id = call.data.split('_')[2]
     user_info[call.from_user.id].append(city_id)
 
