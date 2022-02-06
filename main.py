@@ -267,10 +267,12 @@ async def callback_no(call: CallbackQuery):
 async def show_game(message: types.Message):
     info = db.show_user(message.from_user.id)
 
-    logger.info(f" {message.from_user.id} смотрит игры")
+    
     if info == None:
+        logger.info(f" {message.from_user.id} пытается посмотреть игры без регистрации")
         await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
+        logger.info(f" {message.from_user.id} смотрит игры")
         city_id = db.show_user(message.from_user.id)[3]
         if city_id == 0:
             await bot.send_message(message.chat.id, "Для начала выберите город в настройках профиля")
@@ -1238,6 +1240,7 @@ async def call_btn_btn_gusers(call: CallbackQuery):
 async def show_profile(message: types.Message):
     info = db.show_user(message.from_user.id)
     if info == None:
+        logger.info(f" {message.from_user.id} пытается посмотреть профиль без регистрации")
         await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
