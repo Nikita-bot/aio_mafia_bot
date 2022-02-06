@@ -92,21 +92,22 @@ async def btn_gameplace(city_id, game_id):
 
 @dp.message_handler(commands=['start'])
 async def reg_message(message: types.Message):
-    logger.info(f"{message.from_user.id} начал регистрацию")
+
     user_id = message.from_user.id
     user_info[user_id] = [user_id]
 
     info = db.show_user(message.from_user.id)
     if info == None:
-
+        logger.info(f"{message.from_user.id} начал регистрацию")
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True,)
         button_phone = types.KeyboardButton(
             text="Подтвердить номер📲", request_contact=True)
         keyboard.add(button_phone)
         await bot.send_message(message.chat.id,
-                               text="Вы новый пользователь!\nПоэтому давайте пройдём регистрацию\nДля начала подтвердите свой номер телефона",
+                               text="Вы новый пользователь!\nПоэтому давайте пройдём регистрацию\nДля начала подтвердите свой номер телефона\n кнопкой на клавиатуре",
                                reply_markup=keyboard)
     else:
+        logger.info(f"{message.from_user.id} ввел 'start'")
         msg = await bot.send_message(message.chat.id, "Загружаем фото...")
         y.download(f'/avatar/{user_id}.jpg', f'./img/avatar/{user_id}.jpg')
         await bot.delete_message(message.chat.id, msg.message_id)
@@ -118,6 +119,7 @@ async def reg_message(message: types.Message):
 
 @dp.message_handler(content_types=['contact'], state='*')
 async def photo_step(message: types.Message, state: FSMContext):
+    logger.info(f"{message.from_user.id} на этапе подтверждения номера")
     user_info[message.from_user.id].append(message.contact.phone_number)
 
     await bot.send_message(message.chat.id, 'Теперь отправьте фотографию для вашего профиля', reply_markup=types.ReplyKeyboardRemove())
@@ -126,6 +128,7 @@ async def photo_step(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=User_state.photo, content_types=['photo'])
 async def name_step(message: types.Message, state: FSMContext):
+    logger.info(f"{message.from_user.id} выбирает фото")
     async with state.proxy() as user:
         user['photo'] = message.photo[-1]  # .file_id
     user_info[message.from_user.id].append(user['photo'])
@@ -142,6 +145,7 @@ async def name_step(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=User_state.name)
 async def photo_step(message: types.Message, state: FSMContext):
+    logger.info(f"{message.from_user.id} придумывает никнейм")
     async with state.proxy() as user:
         user['name'] = message.text
     user_info[message.from_user.id].append(user['name'])
@@ -154,6 +158,7 @@ async def photo_step(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text_contains='btn_reg')
 async def callback_citys(call: CallbackQuery):
+    logger.info(f"{call.from_user.id} выбирает город")
     city_id = call.data.split('_')[2]
     user_info[call.from_user.id].append(city_id)
 
