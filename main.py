@@ -589,7 +589,6 @@ async def callback_btn_allUser(call: CallbackQuery):
     if len(mention) == 0:
         await bot.send_message(call.message.chat.id, "Пока никого нет")
     else:
-        print(mention)
         await bot.send_message(call.message.chat.id, "Список пользователей в вашем городе:\n" + '\n'.join(mention), parse_mode="Markdown")
 
 
