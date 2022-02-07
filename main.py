@@ -132,7 +132,7 @@ async def name_step(message: types.Message, state: FSMContext):
     logger.info(f"{message.from_user.id} придумывает никнейм")
     async with state.proxy() as user:
         user['photo'] = message.photo[-1]  # .file_id
-    user_info[message.from_user.id].append(user['photo'])
+    
 
     await user['photo'].download(f'./img/avatar/{message.from_user.id}.jpg')
     if y.exists(f'/avatar/{message.from_user.id}.jpg'):
