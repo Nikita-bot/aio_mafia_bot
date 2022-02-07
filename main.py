@@ -585,6 +585,7 @@ async def callback_btn_allUser(call: CallbackQuery):
     users = db.show_all_users(city_id)
     mention = []
     for i in users:
+        print(i)
         mention.append(f"[{i[1]}](tg://user?id={i[0]}) : Сыграл {i[3]} раз(а)")
     if len(mention) == 0:
         await bot.send_message(call.message.chat.id, "Пока никого нет")
