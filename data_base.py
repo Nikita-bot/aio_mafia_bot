@@ -5,7 +5,6 @@ import psycopg2
 
 class Data:
     def __init__(self):
-        
         self.connection = psycopg2.connect(DATABASE_URL, sslmode='require')
         #self.connection = psycopg2.connect('postgres://qzegunvlwivsan:8d843f5c980ac3ab6a99e857ee245fa5d151883aba3cb38087ab8352444ef911@ec2-54-155-194-191.eu-west-1.compute.amazonaws.com:5432/daqkra75uanuth', sslmode='require') 
         self.cursor = self.connection.cursor()
@@ -15,33 +14,39 @@ class Data:
         self.cursor.execute(
             f"SELECT id,name,phone,city_id,role,count FROM users  WHERE id={user_id}")
         result = self.cursor.fetchone()
+        self.connection.commit()
         return result
 
     def show_city(self):
         self.cursor.execute(f"SELECT id,name FROM city ORDER BY id")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def show_city_info(self, city_id):
         self.cursor.execute(f"SELECT name FROM city WHERE id ={city_id}")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def search_city(self, city_id):
         self.cursor.execute(f"SELECT name FROM city WHERE id={city_id}")
         result = self.cursor.fetchone()
+        self.connection.commit()
         return result
 
     def show_place_in_city(self, city_id):
         self.cursor.execute(
             f"SELECT id, name,price,seats,city_id FROM place WHERE city_id={city_id} ORDER BY id")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def show_info_place(self, place_id):
         self.cursor.execute(
             f"SELECT id, name,price,seats,city_id, prepayment FROM place WHERE id={place_id}")
         result = self.cursor.fetchone()
+        self.connection.commit()
         return result
 
     def Insert_user(self, user):
@@ -73,18 +78,21 @@ class Data:
         self.cursor.execute(
             f"select g.id, p.name,g.date_of_games,g.time,p.seats,p.price,g.definitely,p.id,p.prepayment FROM games g,place p WHERE g.city_id= {city_id} and g.place_id = p.id ORDER BY g.date_of_games")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def show_info_game(self, game_id):
         self.cursor.execute(
             f"SELECT city_id, place_id, date_of_games FROM games where id={game_id}")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def show_game_id(self, place_id,date):
         self.cursor.execute(
             f"SELECT id, definitely  FROM games where place_id={place_id} and date_of_games = '{date}'")
         result = self.cursor.fetchone()
+        self.connection.commit()
         return result
 
     def Insert_prereg_game(self, game_id, user_id, count):
@@ -96,18 +104,21 @@ class Data:
         self.cursor.execute(
             f"SELECT game_id,user_id FROM pre_reg WHERE user_id={user_id}  ORDER BY game_id")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def show_who_goes(self, game_id, parametr):
         self.cursor.execute(
             f"SELECT u.name, u.id FROM users u , pre_reg pr WHERE pr.game_id = {game_id} AND pr.user_id = u.id AND pr.prepayment = {parametr} AND pr.come=0")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def show_count_prereg_game(self, game_id):
         self.cursor.execute(
             f"SELECT SUM(count) FROM pre_reg WHERE game_id={game_id}")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def change_role(self, name, role):
@@ -124,6 +135,7 @@ class Data:
         self.cursor.execute(
             f"SELECT id,name,role,count FROM users WHERE city_id={parametr}")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def del_game(self, game_id):
@@ -153,18 +165,21 @@ class Data:
     def show_game_in_place(self ,place_id):
         self.cursor.execute(f"select id FROM games WHERE place_id= {place_id}")
         result = self.cursor.fetchall()
+        self.connection.commit()
         return result
 
     def find_admin(self, city_id):
         self.cursor.execute(
             f"SELECT id, phone, name FROM users WHERE (role=1 or role=2) and city_id={city_id} ORDER BY role")
         result = self.cursor.fetchone()
+        self.connection.commit()
         return result
 
     def find_main(self):
         self.cursor.execute(
             f"SELECT id, phone, name FROM users WHERE role = 2")
         result = self.cursor.fetchone()
+        self.connection.commit()
         return result
 
     def insert_place(self, place_info):  # city_id,name,price,seats,preprice
