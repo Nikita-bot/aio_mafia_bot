@@ -934,9 +934,13 @@ async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
         data = data['text']
-    data = re.split(";|,|\n|-|:|\.", data)
-    date = datetime.date(int(data[2]), int(
-        data[1]), int(data[0]))
+    try:
+        data = re.split(";|,|\n|-|:|\.", data)
+        date = datetime.date(int(data[2]), int(data[1]), int(data[0]))
+    except:
+        await bot.send_message(chat_id=message.from_user.id,
+                               text="Введите правильно дату\nПример  `01-01-2022`", parse_mode='Markdown')
+        await Game_state.date.set()
     if (int(data[0]) < 0 or int(data[0]) > 31) or (int(data[1]) > 12 or int(data[1]) <= 0) or date < datetime.date.today():
         await bot.send_message(chat_id=message.from_user.id,
                                text="Введите правильно дату, не раньше сегодняшнего дня\nПример  `01-01-2022`", parse_mode='Markdown')
@@ -1097,8 +1101,13 @@ async def new_take_date(message: types.Message, state: FSMContext):
     old_info.append(info[0][1])
     old_info.append(info[0][2])
 
-    data = re.split(";|,|\n|-|:|\.", data)
-    date = datetime.date(int(data[2]), int(data[1]), int(data[0]))
+    try:
+        data = re.split(";|,|\n|-|:|\.", data)
+        date = datetime.date(int(data[2]), int(data[1]), int(data[0]))
+    except:
+        await bot.send_message(chat_id=message.from_user.id,
+                               text="Введите правильно дату\nПример  `01-01-2022`", parse_mode='Markdown')
+        await NewGame_state.date.set()
     if (int(data[0]) < 0 or int(data[0]) > 31) or (int(data[1]) > 12 or int(data[1]) <= 0) or date < datetime.date.today():
         await bot.send_message(chat_id=message.from_user.id,
                                text="Введите правильно дату, не раньше сегодняшней\nПример  `01-01-2022`", parse_mode='Markdown')
