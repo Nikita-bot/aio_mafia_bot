@@ -164,7 +164,7 @@ async def callback_citys(call: CallbackQuery):
     user_info[call.from_user.id].append(city_id)
 
     city_name = db.show_city_info(city_id)
-
+    print(user_info[call.from_user.id])
     await bot.edit_message_text(f'Вы выбрали {city_name[0][0]}', call.from_user.id, call.message.message_id, reply_markup=None)
     db.Insert_user(user_info[call.from_user.id])
     await bot.send_message(call.message.chat.id,
