@@ -248,7 +248,7 @@ async def callback_yes(call: CallbackQuery):
 
             main = db.find_main()
             mention = []
-            mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+            mention.append(f"[{user[1]}](tg://user?id={user[0]})({user[2]})")
             await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
                                    '\n'.join(mention), parse_mode="Markdown")
             await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
@@ -416,7 +416,7 @@ async def call_btn_confirm(call: CallbackQuery):
                         admin_id = db.find_main()[0]
                     user = db.show_user(user_id)
                     mention = []
-                    mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+                    mention.append(f"[{user[1]}](tg://user?id={user[0]})({user[2]})")
                     await bot.send_message(admin_id, f"Кто-то зарегистрировался на игру {check_game[0][2].strftime('%d.%m.%Y')}:\n" +
                                            '\n'.join(mention), parse_mode="Markdown")
                     break
@@ -585,7 +585,7 @@ async def callback_btn_allUser(call: CallbackQuery):
     users = db.show_all_users(city_id)
     mention = []
     for i in users:
-        mention.append(f"[{i[1]}](tg://user?id={i[0]}) : Сыграл {i[3]} раз(а)")
+        mention.append(f"[{i[1]}](tg://user?id={i[0]})({i[4]}) : Сыграл {i[3]} раз(а)")
     if len(mention) == 0:
         await bot.send_message(call.message.chat.id, "Пока никого нет")
     else:
@@ -634,7 +634,7 @@ async def callback_btn_сusers(call: CallbackQuery):
 
     if (count == 25) or (count == 28):
         mention = []
-        mention.append(f"[{user[1]}](tg://user?id={user[0]})")
+        mention.append(f"[{user[1]}](tg://user?id={user[0]})({user[2]})")
         city_id = db.show_user(call.from_user.id)[3]
         admin = db.find_admin(city_id)[0]
         await bot.send_message(admin, f"Этот пользователь сыграл {count} раз(а) :\n" +

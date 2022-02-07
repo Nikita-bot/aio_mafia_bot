@@ -133,7 +133,7 @@ class Data:
 
     def show_all_users(self, parametr):
         self.cursor.execute(
-            f"SELECT id,name,role,count FROM users WHERE city_id={parametr}")
+            f"SELECT id,name,role,count,phone FROM users WHERE city_id={parametr}")
         result = self.cursor.fetchall()
         self.connection.commit()
         return result
