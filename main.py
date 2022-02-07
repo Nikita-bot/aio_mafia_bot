@@ -231,7 +231,7 @@ async def corporate_message(message: types.Message):
         keyboad_corp.add(btn_no)
         await bot.send_message(
             message.chat.id, 'Вы хотите заказать корпоративную игру?', reply_markup=keyboad_corp)
-
+    
 
 @dp.callback_query_handler(text_contains='yes')
 async def callback_yes(call: CallbackQuery):
@@ -249,9 +249,13 @@ async def callback_yes(call: CallbackQuery):
             main = db.find_main()
             mention = []
             mention.append(f"[{user[1]}](tg://user?id={user[0]})({user[2]})")
-            await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
+            if(len(admin)==0):
+                await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
                                    '\n'.join(mention), parse_mode="Markdown")
-            await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
+            else:
+                await bot.send_message(admin[0], "Кто-то хочет заказать корпоративную игру:\n" +
+                                   '\n'.join(mention), parse_mode="Markdown")
+                await bot.send_message(main[0], "Кто-то хочет заказать корпоративную игру:\n" +
                                    '\n'.join(mention), parse_mode="Markdown")
 
 
