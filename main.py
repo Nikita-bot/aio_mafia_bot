@@ -10,12 +10,10 @@ import yadisk
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.storage import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.types import inline_keyboard, message, user
+from aiogram.types import user
 from aiogram.types.callback_query import CallbackQuery
-from aiogram.types.reply_keyboard import ReplyKeyboardRemove
-from aiogram.utils.exceptions import (MessageToEditNotFound, MessageCantBeEdited, MessageCantBeDeleted,
-                                      MessageToDeleteNotFound)
-from contextlib import suppress
+
+
 from config import TOKEN, YanToken
 from stateses import User_state, Game_state, Place_state, City_state, News_state, NewUser_state, NewGame_state
 import data_base
@@ -500,21 +498,30 @@ async def callback_btn_rnews(call: CallbackQuery):
 async def rnews_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
+        text = data['text']
     city_id = db.show_user(message.from_user.id)[3]
     await state.finish()
     for i in db.show_all_users(city_id):
-        await bot.send_message(i[0], data['text'])
+        try:
+            await bot.send_message(i[0], text)
+        except:
+            print(f"{i} заблокировал бота")
+
 
 
 @dp.message_handler(state=News_state.reg_news_photo, content_types=['photo'])
 async def news_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.caption
+        text = data['text']
         photo = message.photo[-1].file_id
     city_id = db.show_user(message.from_user.id)[3]
     await state.finish()
     for i in db.show_all_users(city_id):
-        await bot.send_photo(i[0], photo=photo, caption=data['text'])
+        try:
+            await bot.send_photo(i[0], photo=photo, caption=text)
+        except:
+            print(f"{i} заблокировал бота")
 
 
 @ dp.callback_query_handler(text_contains='btn_news')
@@ -526,7 +533,7 @@ async def callback_btn_news(call: CallbackQuery):
         btn_photo = types.InlineKeyboardButton(
             text='Новость с фото', callback_data='btn_news_1')
         btn_text = types.InlineKeyboardButton(
-            text='Новость без', callback_data='btn_news_2')
+            text='Новость без фото', callback_data='btn_news_2')
         keyboad.add(btn_photo)
         keyboad.add(btn_text)
         await bot.edit_message_text('Выберите тип новости', call.message.chat.id, call.message.message_id, reply_markup=keyboad)
@@ -542,19 +549,28 @@ async def callback_btn_news(call: CallbackQuery):
 async def rnews_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
+        text = data['text']
     await state.finish()
     for i in db.show_all_users('city_id'):
-        await bot.send_message(i[0], data['text'])
+        try:
+            await bot.send_message(i[0], text)
+        except:
+            print(f"{i} заблокировал бота")
 
 
 @dp.message_handler(state=News_state.all_news_photo, content_types=['photo'])
 async def news_state(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.caption
+        text = data['text']
         photo = message.photo[-1].file_id
     await state.finish()
     for i in db.show_all_users('city_id'):
-        await bot.send_photo(i[0], photo=photo, caption=data['text'])
+        try:
+            await bot.send_photo(i[0], photo=photo, caption=text)
+        except:
+            print(f"{i} заблокировал бота")
+        
 
 # _____ADMIN/NEWS_____
 
@@ -671,10 +687,11 @@ async def callback_btn_add_admin(call: CallbackQuery):
 async def step_add_admin(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
+        text = data['text']
 
-    db.change_role(data['text'], 1)
+    db.change_role(text, 1)
     await bot.send_message(
-        message.chat.id, f"{data['text']} теперь админ своего города")
+        message.chat.id, f"{text} теперь админ своего города")
     await state.finish()
 
 
@@ -688,10 +705,11 @@ async def callback_del_add_admin(call: CallbackQuery):
 async def step_del_admin(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
+        text = data['text']
 
-    db.change_role(data['text'], 0)
+    db.change_role(text, 0)
     await bot.send_message(
-        message.chat.id, f"{data['text']} теперь не админ своего города")
+        message.chat.id, f"{text} теперь не админ своего города")
     await state.finish()
 
 
@@ -703,14 +721,18 @@ async def callback_adm_city(call: CallbackQuery):
     citys_menu = types.InlineKeyboardMarkup()
     btn_add_city = types.InlineKeyboardButton(
         text='Добавить город', callback_data='adm_add_city')
+
     btn_add_place_in_city = types.InlineKeyboardButton(
         text='Добавить заведение', callback_data='adm_add_place')
+    btn_edit_palace_in_city = types.InlineKeyboardButton(
+        text='Настроить заведение', callback_data='adm_edit_place')
     btn_del_city = types.InlineKeyboardButton(
         text='Удалить город', callback_data='adm_del_city')
     btn_del_place_in_city = types.InlineKeyboardButton(
         text='Удалить заведение', callback_data='adm_del_place')
     citys_menu.add(btn_add_city)
     citys_menu.add(btn_add_place_in_city)
+    citys_menu.add(btn_edit_palace_in_city)
     citys_menu.add(btn_del_city)
     citys_menu.add(btn_del_place_in_city)
 
@@ -727,8 +749,9 @@ async def callback_adm_add_city(call: CallbackQuery):
 async def add_city(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    db.Insert_city(data['text'])
-    await bot.send_message(message.chat.id, f'Город {data["text"]} добавлен')
+        text = data['text']
+    db.Insert_city(text)
+    await bot.send_message(message.chat.id, f'Город {text} добавлен')
     await state.finish()
 
 
@@ -788,6 +811,24 @@ async def callback_btn_dcity(call: CallbackQuery):
         await bot.edit_message_text('Город удалён', call.message.chat.id, call.message.message_id, reply_markup=None)
 
 
+
+@ dp.callback_query_handler(text_contains='adm_edit_place')
+async def callback_adm_add_city(call: CallbackQuery):
+    keybd = (await kb_city.keyboard_city('btn_edplace'))[0]
+    await bot.edit_message_text("Выберете город в котором находится заведение", call.from_user.id, call.message.message_id, reply_markup=keybd)
+
+
+@ dp.callback_query_handler(text_contains='btn_edplace')
+async def callback_btn_dplace(call: CallbackQuery):
+    city_id = call.data.split("_")[2]
+    places = (await btn_place(city_id, 'btn_editplace'))[0]
+    await bot.edit_message_text('Какое заведение желаете настроить?', call.from_user.id, call.message.message_id, reply_markup=places)
+
+
+@ dp.callback_query_handler(text_contains='btn_editplace')
+async def callback_btn_dplace(call: CallbackQuery):
+    pass
+
 @ dp.callback_query_handler(text_contains='adm_del_place')
 async def callback_adm_del_place(call: CallbackQuery):
     keybd = (await kb_city.keyboard_city('btn_dplace'))[0]
@@ -844,7 +885,7 @@ async def take_name_place(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
 
-    place_info['name'] = data['text']
+        place_info['name'] = data['text']
     await bot.send_message(message.chat.id,
                            "Введите цену игры в заведении")
     await Place_state.price.set()
@@ -854,7 +895,7 @@ async def take_name_place(message: types.Message, state: FSMContext):
 async def take_price_place(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    place_info['price'] = data['text']
+        place_info['price'] = data['text']
     await bot.send_message(message.chat.id,
                            "Введите кол-во мест в заведении")
     await Place_state.seats.set()
@@ -864,7 +905,7 @@ async def take_price_place(message: types.Message, state: FSMContext):
 async def take_seats_place(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    place_info['seats'] = data['text']
+        place_info['seats'] = data['text']
     await bot.send_message(message.chat.id,
                            "Введите предоплату в заведении\nЕсли её не будет отправьте `0`", parse_mode="Markdown")
     await Place_state.prepay.set()
@@ -874,7 +915,7 @@ async def take_seats_place(message: types.Message, state: FSMContext):
 async def add_places(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    place_info['prepay'] = data['text']
+        place_info['prepay'] = data['text']
     db.insert_place(place_info)
     await bot.send_message(message.chat.id, 'Заведение добавлено')
     await state.finish()
@@ -1097,8 +1138,7 @@ async def callback_admin_btn_edit_date(call: CallbackQuery):
 async def new_take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-
-    data = data['text']
+        data = data['text']
     info = db.show_info_game(game_info[message.from_user.id][0])
     old_info = []
     old_info.append(info[0][0])
@@ -1345,8 +1385,8 @@ async def edit_profile(message: types.Message):
 async def take_date(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['text'] = message.text
-    logger.info(f"{message.from_user.id} меняет ник на {data['text']}")
-    db.Change_nickName(message.from_user.id, data['text'])
+        logger.info(f"{message.from_user.id} меняет ник на {data['text']}")
+        db.Change_nickName(message.from_user.id, data['text'])
     await state.finish()
     await bot.send_message(message.chat.id, "Имя пользователя изменено")
 
