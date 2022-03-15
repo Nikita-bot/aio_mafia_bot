@@ -537,7 +537,7 @@ async def news_state(message: types.Message, state: FSMContext):
 @ dp.callback_query_handler(text_contains='btn_news')
 async def callback_btn_news(call: CallbackQuery):
     news = call.data.split('_')[2]
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         if(int(news) == 0):
             keyboad = types.InlineKeyboardMarkup()
@@ -622,7 +622,8 @@ async def callback_btn_user(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains='btn_allUser')
 async def callback_btn_allUser(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
+
     if role>0:
         city_id = db.show_user(call.from_user.id)[3]
         users = db.show_all_users(city_id)
@@ -639,7 +640,7 @@ async def callback_btn_allUser(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains='btn_cum')
 async def callback_btn_cum(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         city_id = db.show_user(call.from_user.id)[3]
         games = db.show_game(city_id)
@@ -662,7 +663,7 @@ async def callback_btn_cum(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains='btn_cgame')
 async def callback_btn_cgame(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         game_id = call.data.split('_')[2]
         users = db.show_who_goes(game_id, 1)
@@ -677,7 +678,7 @@ async def callback_btn_cgame(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains='btn_сusers')
 async def callback_btn_сusers(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         user_id = call.data.split('_')[2]
         game_id = call.data.split('_')[3]
@@ -1051,7 +1052,7 @@ async def add_places(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text_contains='btn_game')
 async def callback_admin_btn_game(call: CallbackQuery):  # админ меню
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         keyboard = types.InlineKeyboardMarkup()
         btn_create_game = types.InlineKeyboardButton(
@@ -1077,7 +1078,7 @@ async def callback_admin_btn_game(call: CallbackQuery):  # админ меню
 
 @dp.callback_query_handler(text_contains='btn_create_game')
 async def callback_admin_btn_creategame(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         admin = db.show_user(call.from_user.id)
         if admin[4] == 2:
@@ -1181,7 +1182,7 @@ async def name_step(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text_contains='btn_edit_game')
 async def callback_admin_btn_editgame(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         city_id = db.show_user(call.from_user.id)[3]
         result_game = db.show_game(city_id)
@@ -1212,7 +1213,7 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
 
 @dp.callback_query_handler(text_contains='btn_edit')
 async def callback_admin_btn_this_game(call: CallbackQuery):
-    role = db.show_user(call.message.from_user.id)[4]
+    role = db.show_user(call.from_user.id)[4]
     if role>0:
         game_id = call.data.split("_")[2]
         keyboard = types.InlineKeyboardMarkup()
