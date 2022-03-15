@@ -37,6 +37,11 @@ class Place_state(StatesGroup):
     price = State()
     seats = State()
 
+class NewPlace_state(StatesGroup):
+    name = State()
+    prepay = State()
+    price = State()
+    seats = State()
 
 class City_state(StatesGroup):
     name = State()
