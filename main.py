@@ -374,7 +374,7 @@ async def callback_btn_who_goes(call: CallbackQuery):
     users = db.show_who_goes(game_info[2], 1)
     c = 1
     for i in users:
-        mention.append(f"{c}. {i[0]} ({i[3]})")
+        mention.append(f"{c}. {i[0]} ({i[2]})")
         c+=1
     if len(mention) == 0:
         await bot.send_message(
