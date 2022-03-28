@@ -311,54 +311,53 @@ async def show_game(message: types.Message):
         await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
     else:
         logger.info(f" {message.from_user.id} смотрит игры")
-        try:
-            city_id = db.show_user(message.from_user.id)[3]
-            if city_id == 0:
-                await bot.send_message(message.chat.id, "Для начала выберите город в настройках профиля")
+
+        city_id = db.show_user(message.from_user.id)[3]
+        if city_id == 0:
+            await bot.send_message(message.chat.id, "Для начала выберите город в настройках профиля")
+        else:
+            result_game = db.show_game(city_id)
+            result_pre_reg = db.show_prereg_game(message.from_user.id)
+            count_user = 0
+            if(len(result_pre_reg) == 0):
+                result_pre_reg.append([0, 0])
+            if(len(result_game) == 0):
+                await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
             else:
-                result_game = db.show_game(city_id)
-                result_pre_reg = db.show_prereg_game(message.from_user.id)
-                count_user = 0
-                if(len(result_pre_reg) == 0):
-                    result_pre_reg.append([0, 0])
-                if(len(result_game) == 0):
-                    await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
-                else:
 
-                    game_id = []
+                game_id = []
 
-                    for i in result_pre_reg:
-                        game_id.append(i[0])
-                    msg = await bot.send_message(message.chat.id, "Загружаем игры..")
-                    for i in result_game:
+                for i in result_pre_reg:
+                    game_id.append(i[0])
+                msg = await bot.send_message(message.chat.id, "Загружаем игры..")
+                for i in result_game:
 
-                        confirm_keyboard = None
-                        time = i[3].strftime("%H:%M")
-                        date = i[2].strftime("%d.%m.%Y")
-                        day = int(date.split(".")[0])
-                        month = int(date.split(".")[1])
-                        year = int(date.split(".")[2])
-                        hour = int(time.split(":")[0])
-                        minute = int(time.split(":")[1])
-                        date_del = datetime.datetime(
+                    confirm_keyboard = None
+                    time = i[3].strftime("%H:%M")
+                    date = i[2].strftime("%d.%m.%Y")
+                    day = int(date.split(".")[0])
+                    month = int(date.split(".")[1])
+                    year = int(date.split(".")[2])
+                    hour = int(time.split(":")[0])
+                    minute = int(time.split(":")[1])
+                    date_del = datetime.datetime(
                             year, month, day, hour, minute)+datetime.timedelta(hours=4)
-                        print(f"Дата удаления:{date_del}")
-                        print("Сейчас:", datetime.datetime.now())
-                        print(datetime.datetime.now() > date_del)
-                        if datetime.datetime.now() > date_del:
-                            db.del_prereg(i[0])
-                            db.del_game(i[0])
-                            if y.exists(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg'):
-                                y.remove(
-                                    f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                                file_name = os.path.join(
-                                    f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                                os.remove(file_name)
+                    print(f"Дата удаления:{date_del}")
+                    print("Сейчас:", datetime.datetime.now())
+                    print(datetime.datetime.now() > date_del)
+                    if datetime.datetime.now() > date_del:
+                        db.del_prereg(i[0])
+                        db.del_game(i[0])
+                        if y.exists(f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg'):
+                            y.remove(
+                                f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                            file_name = os.path.join(
+                                f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
+                            os.remove(file_name)
 
-                            if(len(db.show_game(city_id)) == 0):
-                                await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
+                        if(len(db.show_game(city_id)) == 0):
+                            await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
                         else:
-
                             confirm_keyboard = types.InlineKeyboardMarkup()
                             who_goes = types.InlineKeyboardButton(
                                 text="Кто идёт?", callback_data=f"who_goes_{i[0]}_{date}")
@@ -399,8 +398,7 @@ async def show_game(message: types.Message):
                             await bot.send_photo(message.chat.id, photo=open(
                                 f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg', 'rb'), caption=f"Заведение: `{i[1]}`\nДата проведения: `{date}`\nВремя: `{time}`\nЦена: `{i[5]}`\nПредоплата: `{i[8]}`\nОсталось мест: `{i[4]-i[6]}`\nУже идёт: `{i[6]}`\nПредварительно записались: `{count_user-i[6]}`", parse_mode='Markdown', reply_markup=confirm_keyboard)
                     await bot.delete_message(message.chat.id, msg.message_id)
-        except:
-            print("Error DB in afisha")
+
 
 
 @dp.callback_query_handler(text_contains='who_goes')
