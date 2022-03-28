@@ -374,14 +374,14 @@ async def callback_btn_who_goes(call: CallbackQuery):
     users = db.show_who_goes(game_info[2], 1)
     c = 1
     for i in users:
-        mention.append(f"{c}. {i[0]} ({i[2]})")
+        mention.append(f"{c}. {i[0]} (+{int(i[2])-1})")
         c+=1
     if len(mention) == 0:
         await bot.send_message(
             call.message.chat.id, "Пока никто не регистрировался\nНо ты можешь стать первым(ой)!")
     else:
         await bot.send_message(call.message.chat.id, f"Запись на игру {date}:\n" +
-                               '\n'.join(mention), parse_mode="Markdown")
+                                           '\n'.join(mention))
 
 
 @ dp.callback_query_handler(text_contains='confirm')
@@ -943,7 +943,9 @@ async def take_name_place(message: types.Message, state: FSMContext):
 @ dp.callback_query_handler(text_contains='plc_ed_price')
 async def callback_plc_ed_price(call: CallbackQuery):
     place_info['place_id'] = call.data.split("_")[3]
-    await bot.edit_message_text("Ведите новую цену",call.from_user.id, call.message.message_id, reply_markup=None)
+    await bot.delete_message(chat_id=call.message.chat.id,
+                             message_id=call.message.message_id)
+    await bot.send_message(call.from_user.id,"Ведите новую цену")
     await NewPlace_state.price.set()
 
 
@@ -975,7 +977,9 @@ async def take_name_place(message: types.Message, state: FSMContext):
 @ dp.callback_query_handler(text_contains='plc_ed_prep')
 async def callback_plc_ed_prep(call: CallbackQuery):
     place_info['place_id'] = call.data.split("_")[3]
-    await bot.edit_message_text("Введите новую сумму предоплаты?",call.from_user.id, call.message.message_id, reply_markup=None)
+    await bot.delete_message(chat_id=call.message.chat.id,
+                             message_id=call.message.message_id)
+    await bot.send_message(call.message.chat.id,"Введите новую сумму предоплаты")
     await NewPlace_state.prepay.set()
 
 
@@ -1242,7 +1246,7 @@ async def callback_admin_btn_editgame(call: CallbackQuery):
             date = i[2].strftime("%d.%m.%Y")
             keyboard = types.InlineKeyboardMarkup()
             btn_edit_game = types.InlineKeyboardButton(
-                text="Настроить эту игру", callback_data=f"btn_edit_{i[0]}")
+                text="Настроить эту игру", callback_data=f"btn_edit_{i[0]}_{i[7]}")
             keyboard.add(btn_edit_game)
             y.download(f'afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg',
                     f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
@@ -1261,6 +1265,7 @@ async def callback_admin_btn_this_game(call: CallbackQuery):
         print("Error take role Admin 1261")
     if role>0:
         game_id = call.data.split("_")[2]
+        place_id = call.data.split("_")[3]
         keyboard = types.InlineKeyboardMarkup()
         btn_edit_time = types.InlineKeyboardButton(
             text="Настроить время", callback_data=f"btn_ed_time_{game_id}")
@@ -1270,9 +1275,16 @@ async def callback_admin_btn_this_game(call: CallbackQuery):
             text="Настроить место", callback_data=f"btn_ed_place_{game_id}")
         btn_delete_game = types.InlineKeyboardButton(
             text="Удалить игру", callback_data=f"btn_deletegame_{game_id}")
+        btn_edit_price = types.InlineKeyboardButton(
+            text="Изменить стоимость игры", callback_data=f"plc_ed_price_{place_id}")
+        btn_edit_prep = types.InlineKeyboardButton(
+            text="Изменить предоплату", callback_data=f"plc_ed_prep_{place_id}")
+    
         keyboard.add(btn_edit_time)
         keyboard.add(btn_edit_date)
         keyboard.add(btn_edit_place)
+        keyboard.add(btn_edit_price)
+        keyboard.add(btn_edit_prep)
         keyboard.add(btn_delete_game)
         await bot.edit_message_caption(chat_id=call.message.chat.id,
                                     message_id=call.message.message_id, caption='',  reply_markup=keyboard)
@@ -1400,6 +1412,8 @@ async def callback_admin_editplace(call: CallbackQuery):
     y.upload(f"./img/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg",
              f'/afisha/{old_info[0]}_{place_id}_{old_info[2]}.jpg')
     db.change_game(place_id, 'place_id', game_id)
+    await bot.delete_message(chat_id=call.message.chat.id,
+                             message_id=call.message.message_id)
     await bot.send_message(call.message.chat.id, "Место изменено")
 
 
