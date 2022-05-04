@@ -5,7 +5,7 @@ import os
 import re
 import time
 import datetime
-#from numpy import delete
+
 import yadisk
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.storage import FSMContext
@@ -111,7 +111,10 @@ async def reg_message(message: types.Message):
         await bot.delete_message(message.chat.id, msg.message_id)
         await bot.send_photo(message.chat.id, photo=open(
             f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"Рады видеть вас снова  `{info[1]}`", parse_mode='Markdown')
-        os.remove(f'./img/avatar/{user_id}.jpg')
+        try:
+            os.remove(f'./img/avatar/{user_id}.jpg')
+        except:
+            print("Start Фото уже удалено")
     return user
 
 
@@ -136,7 +139,10 @@ async def name_step(message: types.Message, state: FSMContext):
         y.remove(f'/avatar/{message.from_user.id}.jpg')
     y.upload(f'./img/avatar/{message.from_user.id}.jpg',
              f'/avatar/{message.from_user.id}.jpg')
-    os.remove(f'./img/avatar/{message.from_user.id}.jpg')
+    try:
+        os.remove(f'./img/avatar/{message.from_user.id}.jpg')
+    except:
+        print("Регистрация Фото уже удалено")
     await bot.send_message(message.chat.id, 'Теперь введите свой никнейм')
     await User_state.name.set()
 
@@ -318,7 +324,10 @@ async def show_game(message: types.Message):
                                 f'/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
                             file_name = os.path.join(
                                 f'img/afisha/{str(city_id)+"_"+str(i[7])+"_"+str(i[2])}.jpg')
-                            os.remove(file_name)
+                            try:
+                                os.remove(file_name)
+                            except:
+                                print("Афиша Фото уже удалено")
 
                         if(len(db.show_game(city_id)) == 0):
                             await bot.send_message(message.chat.id, 'В ближайшее время игр пока нет')
@@ -871,11 +880,14 @@ async def callback_btn_dcity(call: CallbackQuery):
                     old_info.append(info[0][0])
                     old_info.append(info[0][1])
                     old_info.append(info[0][2])
-                    file_name = os.path.join(
-                        "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
-                    os.remove(file_name)
-                    y.remove(
-                        f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+                    try:
+                        file_name = os.path.join(
+                            "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
+                        os.remove(file_name)
+                        y.remove(
+                            f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+                    except:
+                        print("Del_city Фото уже удалено")
                 db.del_place(i)
         users = db.show_all_users(city_id)
         for i in users:
@@ -1022,9 +1034,12 @@ async def callback_btn_dplace(call: CallbackQuery):
             old_info.append(info[0][0])
             old_info.append(info[0][1])
             old_info.append(info[0][2])
-            file_name = os.path.join(
-                "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
-            os.remove(file_name)
+            try:
+                file_name = os.path.join(
+                    "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
+                os.remove(file_name)
+            except:
+                print("Del_place Фото уже удалено")
             y.remove(f"afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
 
         db.del_place(place_id)
@@ -1428,10 +1443,13 @@ async def callback_admin_btn_delete_game(call: CallbackQuery):
         old_info.append(info[0][0])
         old_info.append(info[0][1])
         old_info.append(info[0][2])
-        file_name = os.path.join(
-            "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
-        os.remove(file_name)
-        y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+        try:
+            file_name = os.path.join(
+                "./img/afisha/", f"{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg")
+            os.remove(file_name)
+            y.remove(f'/afisha/{old_info[0]}_{old_info[1]}_{old_info[2]}.jpg')
+        except:
+            print("Del_game Фото уже удалено")
         db.del_prereg(game_id)
         db.del_game(game_id)
         await bot.delete_message(call.message.chat.id, call.message.message_id)
@@ -1528,7 +1546,10 @@ async def edit_profile(message: types.Message):
                 await bot.delete_message(message.chat.id, msg.message_id)
                 await bot.send_photo(message.chat.id, photo=open(
                     f'./img/avatar/{user_id}.jpg', 'rb'), caption=f"*Профиль*\n- _Имя_: `{info[1]}`\n- _Город_: `{result[0]}`\n- _Телефон_: `{info[2]}`\n- _Кол-во игр_: `{info[5]}`", parse_mode='Markdown')
-                os.remove(f'./img/avatar/{user_id}.jpg')
+                try:
+                    os.remove(f'./img/avatar/{user_id}.jpg')
+                except:
+                    print("Edit_photo файл уже удален")
     if message.text == 'Редактировать профиль✏️':
         if info == None:
             await bot.send_message(message.chat.id, "Вас не в нашей базе пользователей, чтобы зарегитрироваться введите: /start")
@@ -1605,7 +1626,10 @@ async def take_date(message: types.Message, state: FSMContext):
         y.remove(f'/avatar/{message.from_user.id}.jpg')
     y.upload(f'./img/avatar/{message.from_user.id}.jpg',
              f'/avatar/{message.from_user.id}.jpg')
-    os.remove(f'./img/avatar/{message.from_user.id}.jpg')
+    try:         
+        os.remove(f'./img/avatar/{message.from_user.id}.jpg')
+    except:
+        print("Change Фото уже удалено")
     logger.info(f"{message.from_user.id} поменял фото")
     await bot.send_message(message.chat.id, "Фотография изменена")
     await state.finish()
